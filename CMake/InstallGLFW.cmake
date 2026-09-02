@@ -25,6 +25,7 @@ if (NOT glfw3_FOUND)
 		                         -DGLFW_BUILD_DOCS=OFF
 		                         -DGLFW_BUILD_TESTS=OFF
 		                         -DGLFW_BUILD_EXAMPLES=OFF
+                                 -DCMAKE_POLICY_VERSION_MINIMUM=3.5 
 		                         -DCMAKE_INSTALL_PREFIX=${glfw_INSTALL_DIR}
 		                         -DCMAKE_BUILD_TYPE=Release
 		                         ${glfw_SOURCE_DIR}
