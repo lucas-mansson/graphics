@@ -11,6 +11,8 @@
 
 #include <clocale>
 #include <cstdlib>
+#include <set>
+#include <stack>
 
 int main() {
   std::setlocale(LC_ALL, "");
@@ -287,11 +289,44 @@ int main() {
     // TODO: Replace this explicit rendering of the Earth and Moon
     // with a traversal of the scene graph and rendering of all its
     // nodes.
+    /*
     earth.render(animation_delta_time_us, camera.GetWorldToClipMatrix(),
                  glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 0.0f, 0.0f)),
                  show_basis);
-    // moon.render(animation_delta_time_us, camera.GetWorldToClipMatrix(),
-    // glm::mat4(1.0f), show_basis);
+    moon.render(animation_delta_time_us, camera.GetWorldToClipMatrix(),
+                glm::mat4(1.0f), show_basis);
+    */
+
+    // stack w earth first
+    std::stack<CelestialBodyRef> stack{};
+    glm::mat4 root_parent_transform =
+        glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 0.0f, 0.0f));
+
+    CelestialBodyRef root{&earth, root_parent_transform};
+    stack.push(root);
+
+    std::set<CelestialBody *> visited{};
+    visited.insert(root.body);
+
+    while (!stack.empty()) {
+      // get current
+      CelestialBodyRef curr = stack.top();
+      stack.pop();
+
+      // children transforms are returned by the render function
+      glm::mat4 children_transform = curr.body->render(
+          animation_delta_time_us, camera.GetWorldToClipMatrix(),
+          curr.parent_transform, show_basis);
+
+      // go trough each neighbors and use the children transform on them
+      std::vector<CelestialBody *> children = curr.body->get_children();
+      for (CelestialBody *child : children) {
+        if (visited.count(child) == 0) { // Not visited
+          stack.push({child, children_transform});
+          visited.insert(child);
+        }
+      }
+    }
 
     //
     // Add controls to the scene.

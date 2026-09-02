@@ -31,33 +31,34 @@ glm::mat4 CelestialBody::render(std::chrono::microseconds elapsed_time,
 
   glm::mat4 scaling_m = glm::scale(glm::mat4(1.0f), _body.scale);
 
-  glm::mat4 translation_m = glm::translate(
-      glm::mat4(1.0f), glm::vec3(_body.orbit.radius, 0.0f, 0.0f));
-
-  // spinning around the y-axis.
+  // r1s: spinning around the y-axis.
   _body.spin.rotation_angle += elapsed_time_s * -glm::half_pi<float>() / 2.0f;
   glm::mat4 spin_y_axis_m = glm::rotate(
       glm::mat4(1.0f), _body.spin.rotation_angle, glm::vec3(0, 1, 0));
 
-  // will tilt the spin plane by the specified axial tilt around the z-axis.
+  // r2s: will tilt the spin plane by the specified axial tilt around the
+  // z-axis.
   glm::mat4 spin_tilt_m =
       glm::rotate(glm::mat4(1.0f), _body.spin.axial_tilt, glm::vec3(0, 0, 1));
 
-  // orbit
+  // To
+  glm::mat4 translation_m = glm::translate(
+      glm::mat4(1.0f), glm::vec3(_body.orbit.radius, 0.0f, 0.0f));
+
+  // r1o: orbit
   _body.orbit.rotation_angle += elapsed_time_s * -glm::half_pi<float>() / 2.0f;
   glm::mat4 orbit_spin_m = glm::rotate(
       glm::mat4(1.0f), _body.orbit.rotation_angle, glm::vec3(0, 1, 0));
 
-  // will tilt the orbit plane by the specified axial tilt around the z-axis.
+  // r2o: will tilt the orbit plane by the specified axial tilt around the
+  // z-axis.
   glm::mat4 tilt_plane_m =
       glm::rotate(glm::mat4(1.0f), _body.orbit.inclination, glm::vec3(0, 0, 1));
 
-  // Scaling last, otherwise all others are scaled
+  glm::mat4 orbit_m = orbit_spin_m * translation_m * tilt_plane_m;
   glm::mat4 planet_m = spin_tilt_m * spin_y_axis_m * scaling_m; // correct
-  glm::mat4 orbit_m = tilt_plane_m * orbit_spin_m * translation_m;
 
-  // glm::mat4 world = parent_transform;
-  // parent transformations applied last?
+  // parent transformations applied last
   glm::mat4 world = parent_transform * orbit_m * planet_m;
 
   if (show_basis) {
@@ -72,7 +73,7 @@ glm::mat4 CelestialBody::render(std::chrono::microseconds elapsed_time,
   // world matrix.
   _body.node.render(view_projection, world);
 
-  glm::mat4 children_transform = parent_transform;
+  glm::mat4 children_transform = parent_transform * orbit_spin_m * spin_tilt_m;
   return children_transform;
 }
 
