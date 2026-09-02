@@ -3,6 +3,7 @@
 #include <glm/detail/qualifier.hpp>
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/matrix_transform.hpp>
+#include <glm/fwd.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/trigonometric.hpp>
 
@@ -44,16 +45,19 @@ glm::mat4 CelestialBody::render(std::chrono::microseconds elapsed_time,
 
   // orbit
   _body.orbit.rotation_angle += elapsed_time_s * -glm::half_pi<float>() / 2.0f;
-  glm::mat4 orbit_m = glm::rotate(glm::mat4(1.0f), _body.orbit.rotation_angle,
-                                  glm::vec3(0, 1, 0));
+  glm::mat4 orbit_spin_m = glm::rotate(
+      glm::mat4(1.0f), _body.orbit.rotation_angle, glm::vec3(0, 1, 0));
 
   // will tilt the orbit plane by the specified axial tilt around the z-axis.
   glm::mat4 tilt_plane_m =
       glm::rotate(glm::mat4(1.0f), _body.orbit.inclination, glm::vec3(0, 0, 1));
 
+  glm::mat4 planet_m = spin_tilt_m * spin_y_axis_m * scaling_m; // 100% correct
+  // glm::mat4 orbit_m = orbit_spin_m * tilt_plane_m * translation_m;
+
   // glm::mat4 world = parent_transform;
-  glm::mat4 world = scaling_m * tilt_plane_m * orbit_m * translation_m *
-                    spin_tilt_m * spin_y_axis_m;
+  // parent transformations applied last?
+  glm::mat4 world = parent_transform * planet_m;
 
   if (show_basis) {
     bonobo::renderBasis(1.0f, 2.0f, view_projection, world);
@@ -67,7 +71,8 @@ glm::mat4 CelestialBody::render(std::chrono::microseconds elapsed_time,
   // world matrix.
   _body.node.render(view_projection, world);
 
-  return parent_transform;
+  glm::mat4 children_transform = translation_m;
+  return children_transform;
 }
 
 void CelestialBody::add_child(CelestialBody *child) {

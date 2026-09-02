@@ -220,7 +220,7 @@ int main() {
   bool pause_animation = false;
   bool show_logs = true;
   bool show_gui = true;
-  bool show_basis = false;
+  bool show_basis = true;
   float time_scale = 1.0f;
 
   while (!glfwWindowShouldClose(window)) {
@@ -283,6 +283,7 @@ int main() {
       CelestialBody *body;
       glm::mat4 parent_transform;
     };
+
     // TODO: Replace this explicit rendering of the Earth and Moon
     // with a traversal of the scene graph and rendering of all its
     // nodes.
