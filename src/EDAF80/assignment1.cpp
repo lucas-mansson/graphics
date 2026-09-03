@@ -128,13 +128,12 @@ int main() {
                                        glm::two_pi<float>() / 12.0f};
 
   glm::vec3 const earth_scale{0.05f};
-  SpinConfiguration const earth_spin{glm::radians(-23.0f),
-                                     glm::two_pi<float>() / 3.0f};
+  SpinConfiguration const earth_spin{glm::radians(-23.0f), 0.0f / 3.0f};
   OrbitConfiguration const earth_orbit{4.0f, glm::radians(-7.2f),
                                        glm::two_pi<float>() / 20.0f};
 
   glm::vec3 const moon_scale{0.01f};
-  SpinConfiguration const moon_spin{glm::radians(-6.7f),
+  SpinConfiguration const moon_spin{glm::radians(6.7f),
                                     glm::two_pi<float>() / 90.0f};
   OrbitConfiguration const moon_orbit{0.2f, glm::radians(29.0f),
                                       glm::two_pi<float>() / 1.3f};
@@ -200,18 +199,16 @@ int main() {
   // Set up the celestial bodies.
   //
   CelestialBody moon(sphere, &celestial_body_shader, moon_texture);
-  // moon.set_scale(glm::vec3(0.3f));
+  moon.set_scale(glm::vec3(0.3f));
   moon.set_scale(moon_scale);
   moon.set_spin(moon_spin);
-  // moon.set_orbit({1.5f, glm::radians(-66.0f), glm::two_pi<float>() / 1.3f});
+  moon.set_orbit({1.5f, glm::radians(-66.0f), glm::two_pi<float>() / 1.3f});
   moon.set_orbit(moon_orbit);
 
   CelestialBody earth(sphere, &celestial_body_shader, earth_texture);
   earth.set_spin(earth_spin);
-  // earth.set_orbit({-2.5f, glm::radians(45.0f), glm::two_pi<float>()
-  // / 10.0f});
+  earth.set_orbit({-2.5f, glm::radians(45.0f), glm::two_pi<float>() / 10.0f});
   earth.set_orbit(earth_orbit);
-  earth.add_child(&moon);
   earth.set_scale(earth_scale);
 
   CelestialBody mercury(sphere, &celestial_body_shader, mercury_texture);
@@ -261,6 +258,8 @@ int main() {
   sun.add_child(&saturn);
   sun.add_child(&uranus);
   sun.add_child(&neptune);
+
+  earth.add_child(&moon);
 
   //
   // Define the colour and depth used for clearing.
@@ -353,8 +352,9 @@ int main() {
     std::stack<CelestialBodyRef> stack{};
     glm::mat4 root_parent_transform =
         glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 0.0f, 0.0f));
+    CelestialBody *root_body = &sun;
 
-    CelestialBodyRef root{&sun, root_parent_transform};
+    CelestialBodyRef root{root_body, root_parent_transform};
     stack.push(root);
 
     std::set<CelestialBody *> visited{};
