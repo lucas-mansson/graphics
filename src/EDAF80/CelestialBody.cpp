@@ -3,6 +3,7 @@
 #include <glm/detail/qualifier.hpp>
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/matrix_transform.hpp>
+#include <glm/ext/scalar_constants.hpp>
 #include <glm/fwd.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/trigonometric.hpp>
@@ -42,15 +43,17 @@ glm::mat4 CelestialBody::render(std::chrono::microseconds elapsed_time,
   // To
   glm::mat4 translation_m = glm::translate(
       glm::mat4(1.0f), glm::vec3(_body.orbit.radius, 0.0f, 0.0f));
+
   // r1o: orbit
   _body.orbit.rotation_angle += elapsed_time_s * _body.orbit.speed;
   glm::mat4 orbit_spin_m = glm::rotate(
       glm::mat4(1.0f), _body.orbit.rotation_angle, glm::vec3(0, 1, 0));
+
   // r2o: will tilt the orbit plane by the axial tilt around the z-axis.
   glm::mat4 orbit_tilt_m =
       glm::rotate(glm::mat4(1.0f), _body.orbit.inclination, glm::vec3(0, 0, 1));
 
-  glm::mat4 spin_m = spin_tilt_m * spin_y_axis_m; // correct
+  glm::mat4 spin_m = spin_tilt_m * spin_y_axis_m;
   glm::mat4 orbit_m = orbit_spin_m * translation_m * orbit_tilt_m;
 
   // parent transformations applied last
@@ -60,6 +63,17 @@ glm::mat4 CelestialBody::render(std::chrono::microseconds elapsed_time,
     bonobo::renderBasis(1.0f, 2.0f, view_projection, world);
   }
 
+  // scale and rotate ring
+  auto ring_scaling_m = glm::scale(
+      glm::mat4(1.0f), glm::vec3(_ring.scale.x, _ring.scale.y, 0.0f));
+  float ring_rotation_angle = glm::pi<float>() / 2.0f;
+  glm::mat4 ring_rotation_m =
+      glm::rotate(glm::mat4(1.0f), ring_rotation_angle, glm::vec3(1, 0, 0));
+
+  glm::mat4 children_transform = parent_transform * orbit_m * spin_tilt_m;
+
+  glm::mat4 ring_world = children_transform * ring_rotation_m * ring_scaling_m;
+
   // Note: The second argument of `node::render()` is supposed to be the
   // parent transform of the node, not the whole world matrix, as the
   // node internally manages its local transforms. However in our case we
@@ -67,8 +81,8 @@ glm::mat4 CelestialBody::render(std::chrono::microseconds elapsed_time,
   // of the node is just the identity matrix and we can forward the whole
   // world matrix.
   _body.node.render(view_projection, world);
+  _ring.node.render(view_projection, ring_world);
 
-  glm::mat4 children_transform = parent_transform * orbit_m * spin_tilt_m;
   return children_transform;
 }
 
