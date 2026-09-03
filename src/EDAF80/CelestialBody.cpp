@@ -69,7 +69,7 @@ glm::mat4 CelestialBody::render(std::chrono::microseconds elapsed_time,
   _body.node.render(view_projection, world);
 
   glm::mat4 children_transform =
-      parent_transform * orbit_tilt_m * translation_m;
+      parent_transform * orbit_tilt_m * orbit_spin_m * translation_m;
   return children_transform;
 }
 
