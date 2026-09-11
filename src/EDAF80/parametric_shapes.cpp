@@ -269,15 +269,15 @@ parametric_shapes::createSphere(float const radius,
     for (unsigned int j = 0u; j < vertical_edges_count; ++j) {
 
       index_sets[index] =
-          glm::uvec3(horizontal_vertices_count * (i + 0u) + (j + 0u),
-                     horizontal_vertices_count * (i + 0u) + (j + 1u),
-                     horizontal_vertices_count * (i + 1u) + (j + 1u));
+          glm::uvec3(vertical_edges_count * (i + 0u) + (j + 0u),
+                     vertical_edges_count * (i + 0u) + (j + 1u),
+                     vertical_edges_count * (i + 1u) + (j + 1u));
       ++index;
 
       index_sets[index] =
-          glm::uvec3(horizontal_vertices_count * (i + 0u) + (j + 0u),
-                     horizontal_vertices_count * (i + 1u) + (j + 1u),
-                     horizontal_vertices_count * (i + 1u) + (j + 0u));
+          glm::uvec3(vertical_edges_count * (i + 0u) + (j + 0u),
+                     vertical_edges_count * (i + 1u) + (j + 1u),
+                     vertical_edges_count * (i + 1u) + (j + 0u));
       ++index;
     }
   }
@@ -362,13 +362,15 @@ parametric_shapes::createSphere(float const radius,
   const auto vertices_offset_first_component =
       reinterpret_cast<GLvoid const *>(0x0);
 
+  p(vertices_size);
+
   glBufferSubData(GL_ARRAY_BUFFER, vertices_offset, vertices_size,
                   static_cast<GLvoid const *>(vertices.data()));
   glEnableVertexAttribArray(
       static_cast<unsigned int>(bonobo::shader_bindings::vertices));
   glVertexAttribPointer(
       static_cast<unsigned int>(bonobo::shader_bindings::vertices), 3, GL_FLOAT,
-      GL_FALSE, vertices_stride, vertices_offset_first_component);
+      GL_FALSE, 0, reinterpret_cast<GLvoid const *>(0x0));
 
   // Normals
   glBufferSubData(GL_ARRAY_BUFFER, normals_offset, normals_size,
@@ -423,7 +425,7 @@ parametric_shapes::createSphere(float const radius,
 
   // All the data has been recorded, we can unbind them.
   glBindVertexArray(0u);
-  glBindBuffer(GL_ARRAY_BUFFER, 0u);
+  // glBindBuffer(GL_ARRAY_BUFFER, 0u);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0u);
   return data;
 }
