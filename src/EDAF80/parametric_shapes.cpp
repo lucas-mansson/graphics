@@ -192,7 +192,7 @@ parametric_shapes::createSphere(float const radius,
   auto binormals = std::vector<glm::vec3>(nbr_vertices);
 
   float d_theta = 2 * glm::pi<float>() / horizontal_vertices_count;
-  float d_phi = glm::pi<float>() / horizontal_vertices_count;
+  float d_phi = glm::pi<float>() / vertical_edges_count;
 
   size_t index = 0u;
   float theta = 0.0f;
@@ -219,28 +219,28 @@ parametric_shapes::createSphere(float const radius,
       vertices[index] = glm::vec3(x_vertex, y_vertex, z_vertex);
 
       // tangent
+      /*
       auto const x_tangent = radius * cos_theta * sin_phi;
       auto const y_tangent = 0;
       auto const z_tangent = -radius * sin_theta * sin_phi;
+      */
       // simplified?
-      /*
       auto const x_tangent = cos_theta;
       auto const y_tangent = 0;
       auto const z_tangent = -sin_theta;
-      */
       auto const tangent = glm::vec3(x_tangent, y_tangent, z_tangent);
       tangents[index] = tangent;
 
       // binormal
+      /*
       auto const x_binormal = radius * sin_theta * cos_phi;
       auto const y_binormal = radius * sin_phi;
       auto const z_binormal = radius * cos_theta * cos_phi;
+      */
       // simplified?
-      /*
       auto const x_binormal = sin_theta * cos_phi;
       auto const y_binormal = sin_phi;
       auto const z_binormal = cos_theta * cos_phi;
-      */
       auto const binormal = glm::vec3(x_binormal, y_binormal, z_binormal);
       binormals[index] = binormal;
 
