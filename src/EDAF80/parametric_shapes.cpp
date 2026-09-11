@@ -183,29 +183,27 @@ parametric_shapes::createSphere(float const radius,
 
   auto const nbr_vertices = vertical_vertices_count * horizontal_vertices_count;
 
-  p(nbr_vertices);
-
   auto vertices = std::vector<glm::vec3>(nbr_vertices);
   auto normals = std::vector<glm::vec3>(nbr_vertices);
   auto texcoords = std::vector<glm::vec3>(nbr_vertices);
   auto tangents = std::vector<glm::vec3>(nbr_vertices);
   auto binormals = std::vector<glm::vec3>(nbr_vertices);
 
-  float d_theta = 2 * glm::pi<float>() / horizontal_vertices_count;
+  float d_theta = glm::two_pi<float>() / horizontal_edges_count;
   float d_phi = glm::pi<float>() / vertical_edges_count;
 
   size_t index = 0u;
   float theta = 0.0f;
   float phi = 0.0f;
   for (unsigned int i = 0u; i < horizontal_vertices_count; ++i) {
-    theta = d_theta * i;
     assert(0 <= theta && theta <= glm::two_pi<float>());
+    p(theta);
 
     float const cos_theta = std::cos(theta);
     float const sin_theta = std::sin(theta);
 
     for (unsigned int j = 0u; j < vertical_vertices_count; ++j) {
-      phi = d_phi * j;
+      // p(phi);
 
       assert(0 <= phi && phi <= glm::pi<float>());
 
@@ -255,10 +253,12 @@ parametric_shapes::createSphere(float const radius,
               (static_cast<float>(horizontal_vertices_count)),
           0.0f);
 
+      phi = d_phi * j;
       ++index;
     }
+    theta += d_theta;
   }
-  p(vertices);
+  // p(vertices);
 
   // 2. generate the indices to group the vertices into triangles,
   auto index_sets = std::vector<glm::uvec3>(2u * vertical_edges_count *
@@ -281,7 +281,7 @@ parametric_shapes::createSphere(float const radius,
       ++index;
     }
   }
-  p(index_sets);
+  // p(index_sets);
   /*
 
   auto index_sets = std::vector<glm::uvec3>(2u * circle_slice_edges_count *
