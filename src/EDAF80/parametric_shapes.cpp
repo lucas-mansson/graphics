@@ -174,31 +174,41 @@ parametric_shapes::createSphere(float const radius,
 
   // 1. generate the various vertex attributes (position, normal, tangent,
   // binormal, and texture coordinates),
-  auto const nbr_vertices = vertical_split_count * horizontal_split_count;
+
+  auto const horizontal_vertices_count = horizontal_split_count + 1u;
+  auto const vertical_vertices_count = vertical_split_count + 1u;
+  auto const horizontal_edges_count = horizontal_vertices_count + 1u;
+  auto const vertical_edges_count = vertical_vertices_count + 1u;
+
+  auto const nbr_vertices = vertical_vertices_count * horizontal_vertices_count;
+
   auto vertices = std::vector<glm::vec3>(nbr_vertices);
   auto normals = std::vector<glm::vec3>(nbr_vertices);
   auto texcoords = std::vector<glm::vec3>(nbr_vertices);
   auto tangents = std::vector<glm::vec3>(nbr_vertices);
   auto binormals = std::vector<glm::vec3>(nbr_vertices);
 
-  float const d_theta =
-      glm::two_pi<float>() / (static_cast<float>(horizontal_split_count));
-
-  float const d_phi =
-      glm::pi<float>() / (static_cast<float>(vertical_split_count));
-
   size_t index = 0u;
   float theta = 0.0f;
   float phi = 0.0f;
-  for (unsigned int i = 0u; i < horizontal_split_count; ++i) {
+  for (unsigned int i = 0u; i < horizontal_vertices_count; ++i) {
+    theta = 2 * glm::pi<float>() * i / horizontal_vertices_count;
+    assert(0 <= theta && theta <= glm::two_pi<float>());
+
     float const cos_theta = std::cos(theta);
     float const sin_theta = std::sin(theta);
+
     p("theta");
     p(theta);
 
-    for (unsigned int j = 0u; j < vertical_split_count; ++j) {
+    for (unsigned int j = 0u; j < vertical_vertices_count; ++j) {
+      phi = glm::pi<float>() / 2 -
+            (glm::pi<float>() * j) / vertical_vertices_count;
+      assert(0 <= phi && phi <= glm::pi<float>());
+
       float const cos_phi = std::cos(phi);
       float const sin_phi = std::sin(phi);
+
       // vertex
       auto const x_vertex = radius * sin_theta * sin_phi;
       auto const y_vertex = -radius * cos_phi;
@@ -206,28 +216,28 @@ parametric_shapes::createSphere(float const radius,
       vertices[index] = glm::vec3(x_vertex, y_vertex, z_vertex);
 
       // tangent
-      /*
       auto const x_tangent = radius * cos_theta * sin_phi;
       auto const y_tangent = 0;
       auto const z_tangent = -radius * sin_theta * sin_phi;
-      */
       // simplified?
+      /*
       auto const x_tangent = cos_theta;
       auto const y_tangent = 0;
       auto const z_tangent = -sin_theta;
+      */
       auto const tangent = glm::vec3(x_tangent, y_tangent, z_tangent);
       tangents[index] = tangent;
 
       // binormal
-      /*
       auto const x_binormal = radius * sin_theta * cos_phi;
       auto const y_binormal = radius * sin_phi;
       auto const z_binormal = radius * cos_theta * cos_phi;
-      */
       // simplified?
+      /*
       auto const x_binormal = sin_theta * cos_phi;
       auto const y_binormal = sin_phi;
       auto const z_binormal = cos_theta * cos_phi;
+      */
       auto const binormal = glm::vec3(x_binormal, y_binormal, z_binormal);
       binormals[index] = binormal;
 
@@ -237,37 +247,37 @@ parametric_shapes::createSphere(float const radius,
 
       // texture coords
       texcoords[index] = glm::vec3(
-          static_cast<float>(j) / (static_cast<float>(vertical_split_count)),
-          static_cast<float>(i) / (static_cast<float>(horizontal_split_count)),
+          static_cast<float>(j) / (static_cast<float>(vertical_vertices_count)),
+          static_cast<float>(i) /
+              (static_cast<float>(horizontal_vertices_count)),
           0.0f);
 
       ++index;
-
-      phi += j * d_phi;
     }
-
-    theta += glm::pi<float>() / 2 - i * d_theta;
   }
 
   // 2. generate the indices to group the vertices into triangles,
-  auto index_sets = std::vector<glm::uvec3>(2u * vertical_split_count *
-                                            horizontal_split_count);
+  auto index_sets =
+      std::vector<glm::uvec3>(2u * vertical_edges_count * vertical_edges_count);
+
   index = 0u;
-  for (unsigned int i = 0u; i < horizontal_split_count; ++i) {
-    for (unsigned int j = 0u; j < vertical_split_count; ++j) {
+  for (unsigned int i = 0u; i < horizontal_edges_count; ++i) {
+    for (unsigned int j = 0u; j < vertical_edges_count; ++j) {
+
       index_sets[index] =
-          glm::uvec3(vertical_split_count * (i + 0u) + (j + 0u),
-                     vertical_split_count * (i + 0u) + (j + 1u),
-                     vertical_split_count * (i + 1u) + (j + 1u));
+          glm::uvec3(horizontal_split_count * (i + 0u) + (j + 0u),
+                     horizontal_split_count * (i + 0u) + (j + 1u),
+                     horizontal_split_count * (i + 1u) + (j + 1u));
       ++index;
 
       index_sets[index] =
-          glm::uvec3(vertical_split_count * (i + 0u) + (j + 0u),
-                     vertical_split_count * (i + 1u) + (j + 1u),
-                     vertical_split_count * (i + 1u) + (j + 0u));
+          glm::uvec3(horizontal_split_count * (i + 0u) + (j + 0u),
+                     horizontal_split_count * (i + 1u) + (j + 1u),
+                     horizontal_split_count * (i + 1u) + (j + 0u));
       ++index;
     }
   }
+  p(index_sets);
 
   // 3. upload all that data to the GPU,
   // 4. configure the vertex array object.
