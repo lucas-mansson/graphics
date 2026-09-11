@@ -175,12 +175,15 @@ parametric_shapes::createSphere(float const radius,
   // 1. generate the various vertex attributes (position, normal, tangent,
   // binormal, and texture coordinates),
 
-  auto const horizontal_vertices_count = horizontal_split_count + 1u;
-  auto const vertical_vertices_count = vertical_split_count + 1u;
-  auto const horizontal_edges_count = horizontal_vertices_count + 1u;
-  auto const vertical_edges_count = vertical_vertices_count + 1u;
+  auto const horizontal_edges_count = horizontal_split_count + 1u;
+  auto const vertical_edges_count = vertical_split_count + 1u;
+
+  auto const horizontal_vertices_count = horizontal_edges_count + 1u;
+  auto const vertical_vertices_count = vertical_edges_count + 1u;
 
   auto const nbr_vertices = vertical_vertices_count * horizontal_vertices_count;
+
+  p(nbr_vertices);
 
   auto vertices = std::vector<glm::vec3>(nbr_vertices);
   auto normals = std::vector<glm::vec3>(nbr_vertices);
@@ -197,9 +200,6 @@ parametric_shapes::createSphere(float const radius,
 
     float const cos_theta = std::cos(theta);
     float const sin_theta = std::sin(theta);
-
-    p("theta");
-    p(theta);
 
     for (unsigned int j = 0u; j < vertical_vertices_count; ++j) {
       phi = glm::pi<float>() / 2 -
@@ -255,30 +255,51 @@ parametric_shapes::createSphere(float const radius,
       ++index;
     }
   }
+  p(vertices);
 
   // 2. generate the indices to group the vertices into triangles,
-  auto index_sets =
-      std::vector<glm::uvec3>(2u * vertical_edges_count * vertical_edges_count);
+  auto index_sets = std::vector<glm::uvec3>(2u * vertical_edges_count *
+                                            horizontal_edges_count);
 
   index = 0u;
   for (unsigned int i = 0u; i < horizontal_edges_count; ++i) {
     for (unsigned int j = 0u; j < vertical_edges_count; ++j) {
 
       index_sets[index] =
-          glm::uvec3(horizontal_split_count * (i + 0u) + (j + 0u),
-                     horizontal_split_count * (i + 0u) + (j + 1u),
-                     horizontal_split_count * (i + 1u) + (j + 1u));
+          glm::uvec3(horizontal_vertices_count * (i + 0u) + (j + 0u),
+                     horizontal_vertices_count * (i + 0u) + (j + 1u),
+                     horizontal_vertices_count * (i + 1u) + (j + 1u));
       ++index;
 
       index_sets[index] =
-          glm::uvec3(horizontal_split_count * (i + 0u) + (j + 0u),
-                     horizontal_split_count * (i + 1u) + (j + 1u),
-                     horizontal_split_count * (i + 1u) + (j + 0u));
+          glm::uvec3(horizontal_vertices_count * (i + 0u) + (j + 0u),
+                     horizontal_vertices_count * (i + 1u) + (j + 1u),
+                     horizontal_vertices_count * (i + 1u) + (j + 0u));
       ++index;
     }
   }
   p(index_sets);
+  /*
 
+  auto index_sets = std::vector<glm::uvec3>(2u * circle_slice_edges_count *
+        spread_slice_edges_count);
+
+  index = 0u;
+  for (unsigned int i = 0u; i < circle_slice_edges_count; ++i) {
+    for (unsigned int j = 0u; j < spread_slice_edges_count; ++j) {
+      index_sets[index] =
+          glm::uvec3(spread_slice_vertices_count * (i + 0u) + (j + 0u),
+                     spread_slice_vertices_count * (i + 0u) + (j + 1u),
+                     spread_slice_vertices_count * (i + 1u) + (j + 1u));
+      ++index;
+
+      index_sets[index] =
+          glm::uvec3(spread_slice_vertices_count * (i + 0u) + (j + 0u),
+                     spread_slice_vertices_count * (i + 1u) + (j + 1u),
+                     spread_slice_vertices_count * (i + 1u) + (j + 0u));
+      ++index;
+    }
+*/
   // 3. upload all that data to the GPU,
   // 4. configure the vertex array object.
   bonobo::mesh_data data;
@@ -346,16 +367,6 @@ parametric_shapes::createSphere(float const radius,
       static_cast<unsigned int>(bonobo::shader_bindings::vertices), 3, GL_FLOAT,
       GL_FALSE, vertices_stride, vertices_offset_first_component);
 
-  /*
-  glBufferSubData(GL_ARRAY_BUFFER, vertices_offset, vertices_size,
-                  static_cast<GLvoid const *>(vertices.data()));
-  glEnableVertexAttribArray(vertices_index);
-
-  glVertexAttribPointer(vertices_index, vertices_nbr_components,
-                        vertices_component_type, vertices_normalize,
-                        vertices_stride, vertices_offset_first_component);
-                        */
-
   // Normals
   glBufferSubData(GL_ARRAY_BUFFER, normals_offset, normals_size,
                   static_cast<GLvoid const *>(normals.data()));
@@ -396,7 +407,7 @@ parametric_shapes::createSphere(float const radius,
 
   // Indices
   auto const indices_buf_obj_ptr = &data.ibo;
-  auto const indices_bufsize = sizeof(index_sets);
+  auto const indices_bufsize = index_sets.size() * sizeof(glm::uvec3);
 
   glGenBuffers(1, indices_buf_obj_ptr);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, *indices_buf_obj_ptr);
