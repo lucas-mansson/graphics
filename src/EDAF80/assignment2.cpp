@@ -55,7 +55,7 @@ void edaf80::Assignment2::run() {
     return;
 
   // Set up the camera
-  mCamera.mWorld.SetTranslate(glm::vec3(0.0f, 0.0f, 0.5f));
+  mCamera.mWorld.SetTranslate(glm::vec3(0.0f, 1.0f, 9.0f));
   mCamera.mMouseSensitivity = glm::vec2(0.003f);
   mCamera.mMovementSpeed = glm::vec3(3.0f); // 3 m/s => 10.8 km/h
 

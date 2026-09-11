@@ -120,7 +120,7 @@ parametric_shapes::createQuad(float const width, float const height,
   glVertexAttribPointer(
       static_cast<unsigned int>(bonobo::shader_bindings::vertices),
       /*! \todo how many components do our vertices have? */
-      vertixNbrOfComponents, // TODO
+      vertixNbrOfComponents, // TODO done
       /* what is the type of each component? */ GL_FLOAT,
       /* should it automatically normalise the values stored */ GL_FALSE,
       /* once all components of a vertex have been read, how far away (in bytes)
@@ -134,19 +134,19 @@ parametric_shapes::createQuad(float const width, float const height,
 
   auto const indicesBufferObjectPtr = &data.ibo;
   // Have the buffer's name stored into `data.ibo`.
-  glGenBuffers(1, /*! \todo fill me */ indicesBufferObjectPtr); // TODO
+  glGenBuffers(1, /*! \todo fill me */ indicesBufferObjectPtr); // TODO done
 
   // We still want a 1D-array, but this time it should be a 1D-array of
   // elements, aka. indices!
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,
                /*! \todo bind the previously generated Buffer */
-               *indicesBufferObjectPtr); // TODO
+               *indicesBufferObjectPtr); // TODO done
 
   auto const indicesBufferSize = sizeof(index_sets);
   glBufferData(
       GL_ELEMENT_ARRAY_BUFFER,
       /*! \todo how many bytes should the buffer contain? */
-      indicesBufferSize, // TODO
+      indicesBufferSize, // TODO done
       /* where is the data stored on the CPU? */ index_sets.data(),
       /* inform OpenGL that the data is modified once, but used often */
       GL_STATIC_DRAW);
@@ -156,7 +156,7 @@ parametric_shapes::createQuad(float const width, float const height,
       sizeof(index_sets[0][0]); // number of indices in the index_sets total
                                 //
   data.indices_nb =
-      /*! \todo how many indices do we have? */ nbrIndicies; // TODO
+      /*! \todo how many indices do we have? */ nbrIndicies; // TODO done
 
   // All the data has been recorded, we can unbind them.
   glBindVertexArray(0u);
@@ -170,11 +170,8 @@ bonobo::mesh_data
 parametric_shapes::createSphere(float const radius,
                                 unsigned int const horizontal_split_count,
                                 unsigned int const vertical_split_count) {
-  //! TODO: Implement this function
-
   // 1. generate the various vertex attributes (position, normal, tangent,
   // binormal, and texture coordinates),
-
   auto const horizontal_edges_count = horizontal_split_count + 1u;
   auto const vertical_edges_count = vertical_split_count + 1u;
 
@@ -259,16 +256,17 @@ parametric_shapes::createSphere(float const radius,
   // p(vertices);
 
   // 2. generate the indices to group the vertices into triangles,
+  // plus one since we want to have space for connecting the last nodes to the
+  // first ones
   auto index_sets = std::vector<glm::uvec3>(2u * vertical_edges_count *
                                             (horizontal_edges_count + 1));
 
-  p(index_sets.size());
   index = 0u;
-  const auto max_node =
+  const auto max_node = // used as mod to connect last nodes with the first ones
       vertical_edges_count * (horizontal_edges_count) + (vertical_edges_count);
+
   for (unsigned int i = 0u; i < horizontal_edges_count + 1; ++i) {
     for (unsigned int j = 0u; j < vertical_edges_count; ++j) {
-
       index_sets[index] =
           glm::uvec3((vertical_edges_count * (i + 0u) + (j + 0u)) % max_node,
                      (vertical_edges_count * (i + 0u) + (j + 1u)) % max_node,
@@ -283,29 +281,6 @@ parametric_shapes::createSphere(float const radius,
     }
   }
 
-  p(index_sets);
-  p(max_node); // max index
-  /*
-
-  auto index_sets = std::vector<glm::uvec3>(2u * circle_slice_edges_count *
-        spread_slice_edges_count);
-
-  index = 0u;
-  for (unsigned int i = 0u; i < circle_slice_edges_count; ++i) {
-    for (unsigned int j = 0u; j < spread_slice_edges_count; ++j) {
-      index_sets[index] =
-          glm::uvec3(spread_slice_vertices_count * (i + 0u) + (j + 0u),
-                     spread_slice_vertices_count * (i + 0u) + (j + 1u),
-                     spread_slice_vertices_count * (i + 1u) + (j + 1u));
-      ++index;
-
-      index_sets[index] =
-          glm::uvec3(spread_slice_vertices_count * (i + 0u) + (j + 0u),
-                     spread_slice_vertices_count * (i + 1u) + (j + 1u),
-                     spread_slice_vertices_count * (i + 1u) + (j + 0u));
-      ++index;
-    }
-*/
   // 3. upload all that data to the GPU,
   // 4. configure the vertex array object.
   bonobo::mesh_data data;
