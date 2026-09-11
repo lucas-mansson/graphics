@@ -203,8 +203,6 @@ parametric_shapes::createSphere(float const radius,
     float const sin_theta = std::sin(theta);
 
     for (unsigned int j = 0u; j < vertical_vertices_count; ++j) {
-      // p(phi);
-
       assert(0 <= phi && phi <= glm::pi<float>());
 
       float const cos_phi = std::cos(phi);
@@ -262,26 +260,31 @@ parametric_shapes::createSphere(float const radius,
 
   // 2. generate the indices to group the vertices into triangles,
   auto index_sets = std::vector<glm::uvec3>(2u * vertical_edges_count *
-                                            horizontal_edges_count);
+                                            (horizontal_edges_count + 1));
 
+  p(index_sets.size());
   index = 0u;
-  for (unsigned int i = 0u; i < horizontal_edges_count; ++i) {
+  const auto max_node =
+      vertical_edges_count * (horizontal_edges_count) + (vertical_edges_count);
+  for (unsigned int i = 0u; i < horizontal_edges_count + 1; ++i) {
     for (unsigned int j = 0u; j < vertical_edges_count; ++j) {
 
       index_sets[index] =
-          glm::uvec3(vertical_edges_count * (i + 0u) + (j + 0u),
-                     vertical_edges_count * (i + 0u) + (j + 1u),
-                     vertical_edges_count * (i + 1u) + (j + 1u));
+          glm::uvec3((vertical_edges_count * (i + 0u) + (j + 0u)) % max_node,
+                     (vertical_edges_count * (i + 0u) + (j + 1u)) % max_node,
+                     (vertical_edges_count * (i + 1u) + (j + 1u)) % max_node);
       ++index;
 
       index_sets[index] =
-          glm::uvec3(vertical_edges_count * (i + 0u) + (j + 0u),
-                     vertical_edges_count * (i + 1u) + (j + 1u),
-                     vertical_edges_count * (i + 1u) + (j + 0u));
+          glm::uvec3((vertical_edges_count * (i + 0u) + (j + 0u)) % max_node,
+                     (vertical_edges_count * (i + 1u) + (j + 1u)) % max_node,
+                     (vertical_edges_count * (i + 1u) + (j + 0u)) % max_node);
       ++index;
     }
   }
-  // p(index_sets);
+
+  p(index_sets);
+  p(max_node); // max index
   /*
 
   auto index_sets = std::vector<glm::uvec3>(2u * circle_slice_edges_count *
@@ -362,8 +365,6 @@ parametric_shapes::createSphere(float const radius,
   const auto vertices_offset_first_component =
       reinterpret_cast<GLvoid const *>(0x0);
 
-  p(vertices_size);
-
   glBufferSubData(GL_ARRAY_BUFFER, vertices_offset, vertices_size,
                   static_cast<GLvoid const *>(vertices.data()));
   glEnableVertexAttribArray(
@@ -422,7 +423,6 @@ parametric_shapes::createSphere(float const radius,
   const auto nbr_indicies = index_sets.size() * index_sets[0].length();
 
   data.indices_nb = nbr_indicies;
-  p(nbr_indicies);
 
   // All the data has been recorded, we can unbind them.
   glBindVertexArray(0u);

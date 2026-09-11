@@ -173,8 +173,8 @@ void edaf80::Assignment2::run() {
   std::int32_t program_index = 0;
   float elapsed_time_s = 0.0f;
   auto cull_mode = bonobo::cull_mode_t::disabled;
-  // auto polygon_mode = bonobo::polygon_mode_t::fill;
-  auto polygon_mode = bonobo::polygon_mode_t::line;
+  auto polygon_mode = bonobo::polygon_mode_t::fill;
+  // auto polygon_mode = bonobo::polygon_mode_t::line;
   bool show_logs = true;
   bool show_gui = true;
   bool show_basis = false;
