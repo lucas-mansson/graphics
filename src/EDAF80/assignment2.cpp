@@ -46,9 +46,10 @@ edaf80::Assignment2::~Assignment2() { bonobo::deinit(); }
 
 void edaf80::Assignment2::run() {
   // Load the sphere geometry
-  // auto const shape = parametric_shapes::createCircleRing(2.0f, 0.75f, 6u,
-  // 0u);
+  // auto const shape = parametric_shapes::createCircleRing(2.0f, 0.75f, 100u,
+  // 100u);
   // auto const shape = parametric_shapes::createQuad(0.25f, 0.15f);
+  // auto const shape = parametric_shapes::createSphere(0.15f, 2u, 1u);
   auto const shape = parametric_shapes::createSphere(0.15f, 10u, 10u);
   if (shape.vao == 0u)
     return;
@@ -170,7 +171,8 @@ void edaf80::Assignment2::run() {
   std::int32_t program_index = 0;
   float elapsed_time_s = 0.0f;
   auto cull_mode = bonobo::cull_mode_t::disabled;
-  auto polygon_mode = bonobo::polygon_mode_t::fill;
+  // auto polygon_mode = bonobo::polygon_mode_t::fill;
+  auto polygon_mode = bonobo::polygon_mode_t::line;
   bool show_logs = true;
   bool show_gui = true;
   bool show_basis = false;

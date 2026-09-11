@@ -22,6 +22,12 @@ template <typename T> void p(std::vector<T> v) {
   }
 }
 
+template <typename A, std::size_t N> void p(std::array<A, N> v) {
+  for (int i = 0; i < v.size(); i++) {
+    p(v[i]);
+  }
+}
+
 bonobo::mesh_data
 parametric_shapes::createQuad(float const width, float const height,
                               unsigned int const horizontal_split_count,
@@ -164,6 +170,8 @@ bonobo::mesh_data
 parametric_shapes::createSphere(float const radius,
                                 unsigned int const horizontal_split_count,
                                 unsigned int const vertical_split_count) {
+  //! TODO: Implement this function
+
   // 1. generate the various vertex attributes (position, normal, tangent,
   // binormal, and texture coordinates),
   auto const nbr_vertices = vertical_split_count * horizontal_split_count;
@@ -174,10 +182,10 @@ parametric_shapes::createSphere(float const radius,
   auto binormals = std::vector<glm::vec3>(nbr_vertices);
 
   float const d_theta =
-      glm::two_pi<float>() / (static_cast<float>(vertical_split_count));
+      glm::two_pi<float>() / (static_cast<float>(horizontal_split_count));
 
   float const d_phi =
-      glm::two_pi<float>() / (static_cast<float>(vertical_split_count));
+      glm::pi<float>() / (static_cast<float>(vertical_split_count));
 
   size_t index = 0u;
   float theta = 0.0f;
@@ -185,12 +193,12 @@ parametric_shapes::createSphere(float const radius,
   for (unsigned int i = 0u; i < horizontal_split_count; ++i) {
     float const cos_theta = std::cos(theta);
     float const sin_theta = std::sin(theta);
-    float const cos_phi = std::cos(phi);
-    float const sin_phi = std::sin(phi);
+    p("theta");
+    p(theta);
 
-    float distance_to_centre = radius;
     for (unsigned int j = 0u; j < vertical_split_count; ++j) {
-
+      float const cos_phi = std::cos(phi);
+      float const sin_phi = std::sin(phi);
       // vertex
       auto const x_vertex = radius * sin_theta * sin_phi;
       auto const y_vertex = -radius * cos_phi;
@@ -198,16 +206,28 @@ parametric_shapes::createSphere(float const radius,
       vertices[index] = glm::vec3(x_vertex, y_vertex, z_vertex);
 
       // tangent
+      /*
       auto const x_tangent = radius * cos_theta * sin_phi;
       auto const y_tangent = 0;
       auto const z_tangent = -radius * sin_theta * sin_phi;
+      */
+      // simplified?
+      auto const x_tangent = cos_theta;
+      auto const y_tangent = 0;
+      auto const z_tangent = -sin_theta;
       auto const tangent = glm::vec3(x_tangent, y_tangent, z_tangent);
       tangents[index] = tangent;
 
       // binormal
+      /*
       auto const x_binormal = radius * sin_theta * cos_phi;
       auto const y_binormal = radius * sin_phi;
       auto const z_binormal = radius * cos_theta * cos_phi;
+      */
+      // simplified?
+      auto const x_binormal = sin_theta * cos_phi;
+      auto const y_binormal = sin_phi;
+      auto const z_binormal = cos_theta * cos_phi;
       auto const binormal = glm::vec3(x_binormal, y_binormal, z_binormal);
       binormals[index] = binormal;
 
@@ -222,10 +242,11 @@ parametric_shapes::createSphere(float const radius,
           0.0f);
 
       ++index;
+
+      phi += j * d_phi;
     }
 
-    theta += d_theta;
-    phi += d_phi;
+    theta += glm::pi<float>() / 2 - i * d_theta;
   }
 
   // 2. generate the indices to group the vertices into triangles,
@@ -235,9 +256,9 @@ parametric_shapes::createSphere(float const radius,
   for (unsigned int i = 0u; i < horizontal_split_count; ++i) {
     for (unsigned int j = 0u; j < vertical_split_count; ++j) {
       index_sets[index] =
-          glm::uvec3(horizontal_split_count * (i + 0u) + (j + 0u),
-                     horizontal_split_count * (i + 0u) + (j + 1u),
-                     horizontal_split_count * (i + 1u) + (j + 1u));
+          glm::uvec3(vertical_split_count * (i + 0u) + (j + 0u),
+                     vertical_split_count * (i + 0u) + (j + 1u),
+                     vertical_split_count * (i + 1u) + (j + 1u));
       ++index;
 
       index_sets[index] =
@@ -247,16 +268,139 @@ parametric_shapes::createSphere(float const radius,
       ++index;
     }
   }
-  p(index_sets);
 
   // 3. upload all that data to the GPU,
+  // 4. configure the vertex array object.
   bonobo::mesh_data data;
 
-  // auto const vertexArrayObjectPtr = &data.vao;
+  // Vertex Attribute Object
+  auto const vertexArrayObjectPtr = &data.vao;
+  glGenVertexArrays(1, vertexArrayObjectPtr);
+  assert(data.vao != 0u);
+  glBindVertexArray(*vertexArrayObjectPtr);
 
-  // 4. configure the vertex array object.
+  // Vertices
+  auto const vertices_offset = 0u;
+  auto const vertices_size =
+      static_cast<GLsizeiptr>(vertices.size() * sizeof(glm::vec3));
+  const auto vertices_index =
+      static_cast<unsigned int>(bonobo::shader_bindings::vertices);
+  const auto vertices_bufsize = sizeof(vertices);
+  const auto vertices_buffer_location = vertices.data();
+  const auto vertices_buffer_usage = GL_STATIC_DRAW;
 
-  //! TODO: Implement this function
+  // Normals
+  auto const normals_offset = vertices_size;
+  auto const normals_size =
+      static_cast<GLsizeiptr>(normals.size() * sizeof(glm::vec3));
+
+  // Texture coords
+  auto const texcoords_offset = normals_offset + normals_size;
+  auto const texcoords_size =
+      static_cast<GLsizeiptr>(texcoords.size() * sizeof(glm::vec3));
+
+  // tangents
+  auto const tangents_offset = texcoords_offset + texcoords_size;
+  auto const tangents_size =
+      static_cast<GLsizeiptr>(tangents.size() * sizeof(glm::vec3));
+
+  // binormals
+  auto const binormals_offset = tangents_offset + tangents_size;
+  auto const binormals_size =
+      static_cast<GLsizeiptr>(binormals.size() * sizeof(glm::vec3));
+
+  // Buffer Object
+  auto const bo_size =
+      static_cast<GLsizeiptr>(vertices_size + normals_size + texcoords_size +
+                              tangents_size + binormals_size);
+  auto const buffer_object_ptr = &data.bo;
+
+  glGenBuffers(1, buffer_object_ptr);
+  assert(data.bo != 0u);
+  glBindBuffer(GL_ARRAY_BUFFER, *buffer_object_ptr);
+  glBufferData(GL_ARRAY_BUFFER, bo_size, nullptr, GL_STATIC_DRAW);
+
+  // Vertices
+  const auto vertices_nbr_components = vertices[0].length();
+  const auto vertices_component_type = GL_FLOAT;
+  const auto vertices_normalize = GL_FALSE;
+  const auto vertices_stride = 0;
+  const auto vertices_offset_first_component =
+      reinterpret_cast<GLvoid const *>(0x0);
+
+  glBufferSubData(GL_ARRAY_BUFFER, vertices_offset, vertices_size,
+                  static_cast<GLvoid const *>(vertices.data()));
+  glEnableVertexAttribArray(
+      static_cast<unsigned int>(bonobo::shader_bindings::vertices));
+  glVertexAttribPointer(
+      static_cast<unsigned int>(bonobo::shader_bindings::vertices), 3, GL_FLOAT,
+      GL_FALSE, vertices_stride, vertices_offset_first_component);
+
+  /*
+  glBufferSubData(GL_ARRAY_BUFFER, vertices_offset, vertices_size,
+                  static_cast<GLvoid const *>(vertices.data()));
+  glEnableVertexAttribArray(vertices_index);
+
+  glVertexAttribPointer(vertices_index, vertices_nbr_components,
+                        vertices_component_type, vertices_normalize,
+                        vertices_stride, vertices_offset_first_component);
+                        */
+
+  // Normals
+  glBufferSubData(GL_ARRAY_BUFFER, normals_offset, normals_size,
+                  static_cast<GLvoid const *>(normals.data()));
+  glEnableVertexAttribArray(
+      static_cast<unsigned int>(bonobo::shader_bindings::normals));
+  glVertexAttribPointer(
+      static_cast<unsigned int>(bonobo::shader_bindings::normals), 3, GL_FLOAT,
+      GL_FALSE, 0, reinterpret_cast<GLvoid const *>(normals_offset));
+
+  // Texture coordinates
+  glBufferSubData(GL_ARRAY_BUFFER, texcoords_offset, texcoords_size,
+                  static_cast<GLvoid const *>(texcoords.data()));
+  glEnableVertexAttribArray(
+      static_cast<unsigned int>(bonobo::shader_bindings::texcoords));
+  glVertexAttribPointer(
+      static_cast<unsigned int>(bonobo::shader_bindings::texcoords), 3,
+      GL_FLOAT, GL_FALSE, 0,
+      reinterpret_cast<GLvoid const *>(texcoords_offset));
+
+  // Tangents
+  glBufferSubData(GL_ARRAY_BUFFER, tangents_offset, tangents_size,
+                  static_cast<GLvoid const *>(tangents.data()));
+  glEnableVertexAttribArray(
+      static_cast<unsigned int>(bonobo::shader_bindings::tangents));
+  glVertexAttribPointer(
+      static_cast<unsigned int>(bonobo::shader_bindings::tangents), 3, GL_FLOAT,
+      GL_FALSE, 0, reinterpret_cast<GLvoid const *>(tangents_offset));
+
+  // Binormals
+  glBufferSubData(GL_ARRAY_BUFFER, binormals_offset, binormals_size,
+                  static_cast<GLvoid const *>(binormals.data()));
+  glEnableVertexAttribArray(
+      static_cast<unsigned int>(bonobo::shader_bindings::binormals));
+  glVertexAttribPointer(
+      static_cast<unsigned int>(bonobo::shader_bindings::binormals), 3,
+      GL_FLOAT, GL_FALSE, 0,
+      reinterpret_cast<GLvoid const *>(binormals_offset));
+
+  // Indices
+  auto const indices_buf_obj_ptr = &data.ibo;
+  auto const indices_bufsize = sizeof(index_sets);
+
+  glGenBuffers(1, indices_buf_obj_ptr);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, *indices_buf_obj_ptr);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_bufsize, index_sets.data(),
+               GL_STATIC_DRAW);
+
+  const auto nbrIndicies = sizeof(index_sets) / sizeof(index_sets[0][0]);
+
+  data.indices_nb = nbrIndicies;
+
+  // All the data has been recorded, we can unbind them.
+  glBindVertexArray(0u);
+  glBindBuffer(GL_ARRAY_BUFFER, 0u);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0u);
   return data;
 }
 
@@ -363,18 +507,23 @@ parametric_shapes::createCircleRing(float const radius,
   auto const vertices_offset = 0u;
   auto const vertices_size =
       static_cast<GLsizeiptr>(vertices.size() * sizeof(glm::vec3));
+
   auto const normals_offset = vertices_size;
   auto const normals_size =
       static_cast<GLsizeiptr>(normals.size() * sizeof(glm::vec3));
+
   auto const texcoords_offset = normals_offset + normals_size;
   auto const texcoords_size =
       static_cast<GLsizeiptr>(texcoords.size() * sizeof(glm::vec3));
+
   auto const tangents_offset = texcoords_offset + texcoords_size;
   auto const tangents_size =
       static_cast<GLsizeiptr>(tangents.size() * sizeof(glm::vec3));
+
   auto const binormals_offset = tangents_offset + tangents_size;
   auto const binormals_size =
       static_cast<GLsizeiptr>(binormals.size() * sizeof(glm::vec3));
+
   auto const bo_size =
       static_cast<GLsizeiptr>(vertices_size + normals_size + texcoords_size +
                               tangents_size + binormals_size);
@@ -383,6 +532,7 @@ parametric_shapes::createCircleRing(float const radius,
   glBindBuffer(GL_ARRAY_BUFFER, data.bo);
   glBufferData(GL_ARRAY_BUFFER, bo_size, nullptr, GL_STATIC_DRAW);
 
+  // Vertices
   glBufferSubData(GL_ARRAY_BUFFER, vertices_offset, vertices_size,
                   static_cast<GLvoid const *>(vertices.data()));
   glEnableVertexAttribArray(
@@ -391,6 +541,7 @@ parametric_shapes::createCircleRing(float const radius,
       static_cast<unsigned int>(bonobo::shader_bindings::vertices), 3, GL_FLOAT,
       GL_FALSE, 0, reinterpret_cast<GLvoid const *>(0x0));
 
+  // normals
   glBufferSubData(GL_ARRAY_BUFFER, normals_offset, normals_size,
                   static_cast<GLvoid const *>(normals.data()));
   glEnableVertexAttribArray(
@@ -399,6 +550,7 @@ parametric_shapes::createCircleRing(float const radius,
       static_cast<unsigned int>(bonobo::shader_bindings::normals), 3, GL_FLOAT,
       GL_FALSE, 0, reinterpret_cast<GLvoid const *>(normals_offset));
 
+  // texture coordinates
   glBufferSubData(GL_ARRAY_BUFFER, texcoords_offset, texcoords_size,
                   static_cast<GLvoid const *>(texcoords.data()));
   glEnableVertexAttribArray(
@@ -408,6 +560,7 @@ parametric_shapes::createCircleRing(float const radius,
       GL_FLOAT, GL_FALSE, 0,
       reinterpret_cast<GLvoid const *>(texcoords_offset));
 
+  // tangents
   glBufferSubData(GL_ARRAY_BUFFER, tangents_offset, tangents_size,
                   static_cast<GLvoid const *>(tangents.data()));
   glEnableVertexAttribArray(
@@ -416,6 +569,7 @@ parametric_shapes::createCircleRing(float const radius,
       static_cast<unsigned int>(bonobo::shader_bindings::tangents), 3, GL_FLOAT,
       GL_FALSE, 0, reinterpret_cast<GLvoid const *>(tangents_offset));
 
+  // binormals
   glBufferSubData(GL_ARRAY_BUFFER, binormals_offset, binormals_size,
                   static_cast<GLvoid const *>(binormals.data()));
   glEnableVertexAttribArray(
