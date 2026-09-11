@@ -150,7 +150,6 @@ void edaf80::Assignment2::run() {
   glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
   glEnable(GL_DEPTH_TEST);
 
-  /*
   auto const control_point_sphere =
       parametric_shapes::createSphere(0.1f, 10u, 10u);
   std::array<glm::vec3, 9> control_point_locations = {
@@ -166,7 +165,6 @@ void edaf80::Assignment2::run() {
     control_point.set_program(&diffuse_shader, set_uniforms);
     control_point.get_transform().SetTranslate(control_point_locations[i]);
   }
-  */
 
   auto lastTime = std::chrono::high_resolution_clock::now();
 
@@ -236,13 +234,11 @@ void edaf80::Assignment2::run() {
     }
 
     circle_rings.render(mCamera.GetWorldToClipMatrix());
-    /*
-    if (show_control_points) {
+    if (true || show_control_points) {
       for (auto const &control_point : control_points) {
         control_point.render(mCamera.GetWorldToClipMatrix());
       }
     }
-    */
 
     bool const opened =
         ImGui::Begin("Scene Controls", nullptr, ImGuiWindowFlags_None);
