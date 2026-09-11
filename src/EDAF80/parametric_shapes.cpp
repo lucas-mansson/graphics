@@ -419,9 +419,10 @@ parametric_shapes::createSphere(float const radius,
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_bufsize, index_sets.data(),
                GL_STATIC_DRAW);
 
-  const auto nbrIndicies = sizeof(index_sets) / sizeof(index_sets[0][0]);
+  const auto nbr_indicies = index_sets.size() * index_sets[0].length();
 
-  data.indices_nb = nbrIndicies;
+  data.indices_nb = nbr_indicies;
+  p(nbr_indicies);
 
   // All the data has been recorded, we can unbind them.
   glBindVertexArray(0u);
