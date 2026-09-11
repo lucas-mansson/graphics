@@ -191,19 +191,22 @@ parametric_shapes::createSphere(float const radius,
   auto tangents = std::vector<glm::vec3>(nbr_vertices);
   auto binormals = std::vector<glm::vec3>(nbr_vertices);
 
+  float d_theta = 2 * glm::pi<float>() / horizontal_vertices_count;
+  float d_phi = glm::pi<float>() / horizontal_vertices_count;
+
   size_t index = 0u;
   float theta = 0.0f;
   float phi = 0.0f;
   for (unsigned int i = 0u; i < horizontal_vertices_count; ++i) {
-    theta = 2 * glm::pi<float>() * i / horizontal_vertices_count;
+    theta = d_theta * i;
     assert(0 <= theta && theta <= glm::two_pi<float>());
 
     float const cos_theta = std::cos(theta);
     float const sin_theta = std::sin(theta);
 
     for (unsigned int j = 0u; j < vertical_vertices_count; ++j) {
-      phi = glm::pi<float>() / 2 -
-            (glm::pi<float>() * j) / vertical_vertices_count;
+      phi = d_phi * j;
+
       assert(0 <= phi && phi <= glm::pi<float>());
 
       float const cos_phi = std::cos(phi);
