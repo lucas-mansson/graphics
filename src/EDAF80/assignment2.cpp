@@ -7,6 +7,7 @@
 #include "core/FPSCamera.h"
 #include "core/ShaderProgramManager.hpp"
 #include "core/node.hpp"
+#include <glm/geometric.hpp>
 #include <imgui.h>
 
 #include <glm/glm.hpp>
@@ -17,6 +18,25 @@
 #include <clocale>
 #include <cstdlib>
 #include <stdexcept>
+
+static const int DEBUG = true;
+template <typename Args> void p(Args arg) {
+  if (DEBUG) {
+    std::cout << arg << " " << "\n";
+  }
+}
+
+template <typename T> void p(std::vector<T> v) {
+  for (int i = 0; i < v.size(); i++) {
+    p(v[i]);
+  }
+}
+
+template <typename A, std::size_t N> void p(std::array<A, N> v) {
+  for (int i = 0; i < v.size(); i++) {
+    p(v[i]);
+  }
+}
 
 edaf80::Assignment2::Assignment2(WindowManager &windowManager)
     : mCamera(0.5f * glm::half_pi<float>(),
@@ -181,7 +201,12 @@ void edaf80::Assignment2::run() {
 
   changeCullMode(cull_mode);
 
+  auto pos_idx = 0;
+  auto prev_ctrl_pt = control_point_locations[0];
+  auto curr_pt = prev_ctrl_pt;
+  auto next_ctrl_pt = control_point_locations[1];
   while (!glfwWindowShouldClose(window)) {
+
     auto const nowTime = std::chrono::high_resolution_clock::now();
     auto const deltaTimeUs =
         std::chrono::duration_cast<std::chrono::microseconds>(nowTime -
@@ -219,10 +244,26 @@ void edaf80::Assignment2::run() {
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     bonobo::changePolygonMode(polygon_mode);
 
+    auto rounded_dist =
+        std::round(glm::distance(curr_pt, next_ctrl_pt) * 1000) / 1000;
+
+    auto x = std::sin(elapsed_time_s) * 0.5 + 0.5;
+
+    if (pos_idx % 2 != 0) {
+      x = std::cos(elapsed_time_s) * 0.5 + 0.5;
+    }
+    p(pos_idx);
+
+    if (rounded_dist == 0) {
+      prev_ctrl_pt = next_ctrl_pt;
+      curr_pt = next_ctrl_pt;
+      pos_idx++;
+      next_ctrl_pt = control_point_locations[pos_idx + 1];
+    }
+
     if (interpolate) {
-      //! \todo Interpolate the movement of a shape between various
-      //!        control points.
       if (use_linear) {
+        curr_pt = interpolation::evalLERP(prev_ctrl_pt, next_ctrl_pt, x);
         //! \todo Compute the interpolated position
         //!       using the linear interpolation.
       } else {
@@ -231,6 +272,9 @@ void edaf80::Assignment2::run() {
         //!       use the `catmull_rom_tension`
         //!       variable as your tension argument.
       }
+      //! TODO Interpolate the movement of a shape between various
+      //!        control points.
+      circle_rings.get_transform().SetTranslate(curr_pt);
     }
 
     circle_rings.render(mCamera.GetWorldToClipMatrix());
