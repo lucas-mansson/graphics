@@ -244,21 +244,31 @@ void edaf80::Assignment2::run() {
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     bonobo::changePolygonMode(polygon_mode);
 
+    auto x = std::abs(std::sin(elapsed_time_s));
+    prev_ctrl_pt = control_point_locations[pos_idx % 9];
+    next_ctrl_pt = control_point_locations[(pos_idx + 1) % 9];
+
     auto rounded_dist =
         std::round(glm::distance(curr_pt, next_ctrl_pt) * 1000) / 1000;
 
-    auto x = std::sin(elapsed_time_s) * 0.5 + 0.5;
-
     if (pos_idx % 2 != 0) {
-      x = std::cos(elapsed_time_s) * 0.5 + 0.5;
+      p("cos");
+      x = std::abs(std::cos(elapsed_time_s));
     }
+
+    p("x");
+    p(x);
+    p("curr_pt");
+    p(curr_pt);
+    p("next_ctrl_pt");
+    p(next_ctrl_pt);
+    p("pos_idx");
     p(pos_idx);
+    p("rounded_dist");
+    p(rounded_dist);
 
     if (rounded_dist == 0) {
-      prev_ctrl_pt = next_ctrl_pt;
-      curr_pt = next_ctrl_pt;
       pos_idx++;
-      next_ctrl_pt = control_point_locations[pos_idx + 1];
     }
 
     if (interpolate) {
