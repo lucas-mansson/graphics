@@ -201,10 +201,12 @@ void edaf80::Assignment2::run() {
 
   changeCullMode(cull_mode);
 
-  auto pos_idx = 0;
+  auto prev_pos_idx = 0;
+  auto prev_prev_ctrl_pt = control_point_locations[8];
   auto prev_ctrl_pt = control_point_locations[0];
   auto curr_pt = prev_ctrl_pt;
   auto next_ctrl_pt = control_point_locations[1];
+  auto next_next_ctrl_pt = control_point_locations[2];
   while (!glfwWindowShouldClose(window)) {
 
     auto const nowTime = std::chrono::high_resolution_clock::now();
@@ -245,13 +247,15 @@ void edaf80::Assignment2::run() {
     bonobo::changePolygonMode(polygon_mode);
 
     auto x = std::abs(std::sin(elapsed_time_s));
-    prev_ctrl_pt = control_point_locations[pos_idx % 9];
-    next_ctrl_pt = control_point_locations[(pos_idx + 1) % 9];
+    prev_prev_ctrl_pt = control_point_locations[(prev_pos_idx - 1) % 9];
+    prev_ctrl_pt = control_point_locations[prev_pos_idx % 9];
+    next_ctrl_pt = control_point_locations[(prev_pos_idx + 1) % 9];
+    next_next_ctrl_pt = control_point_locations[(prev_pos_idx + 2) % 9];
 
     auto rounded_dist =
         std::round(glm::distance(curr_pt, next_ctrl_pt) * 1000) / 1000;
 
-    if (pos_idx % 2 != 0) {
+    if (prev_pos_idx % 2 != 0) {
       p("cos");
       x = std::abs(std::cos(elapsed_time_s));
     }
@@ -263,12 +267,12 @@ void edaf80::Assignment2::run() {
     p("next_ctrl_pt");
     p(next_ctrl_pt);
     p("pos_idx");
-    p(pos_idx);
+    p(prev_pos_idx);
     p("rounded_dist");
     p(rounded_dist);
 
     if (rounded_dist == 0) {
-      pos_idx++;
+      prev_pos_idx++;
     }
 
     if (interpolate) {
@@ -277,6 +281,9 @@ void edaf80::Assignment2::run() {
         //! \todo Compute the interpolated position
         //!       using the linear interpolation.
       } else {
+        curr_pt = interpolation::evalCatmullRom(prev_prev_ctrl_pt, prev_ctrl_pt,
+                                                next_ctrl_pt, next_next_ctrl_pt,
+                                                catmull_rom_tension, x);
         //! \todo Compute the interpolated position
         //!       using the Catmull-Rom interpolation;
         //!       use the `catmull_rom_tension`
