@@ -202,11 +202,6 @@ void edaf80::Assignment2::run() {
   changeCullMode(cull_mode);
 
   auto prev_pos_idx = 0;
-  auto prev_prev_ctrl_pt = control_point_locations[8];
-  auto prev_ctrl_pt = control_point_locations[0];
-  auto curr_pt = prev_ctrl_pt;
-  auto next_ctrl_pt = control_point_locations[1];
-  auto next_next_ctrl_pt = control_point_locations[2];
   while (!glfwWindowShouldClose(window)) {
 
     auto const nowTime = std::chrono::high_resolution_clock::now();
@@ -246,51 +241,27 @@ void edaf80::Assignment2::run() {
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     bonobo::changePolygonMode(polygon_mode);
 
-    auto x = std::abs(std::sin(elapsed_time_s));
-    prev_prev_ctrl_pt = control_point_locations[(prev_pos_idx - 1) % 9];
-    prev_ctrl_pt = control_point_locations[prev_pos_idx % 9];
-    next_ctrl_pt = control_point_locations[(prev_pos_idx + 1) % 9];
-    next_next_ctrl_pt = control_point_locations[(prev_pos_idx + 2) % 9];
-
-    auto rounded_dist =
-        std::round(glm::distance(curr_pt, next_ctrl_pt) * 1000) / 1000;
-
-    if (prev_pos_idx % 2 != 0) {
-      p("cos");
-      x = std::abs(std::cos(elapsed_time_s));
-    }
-
-    p("x");
-    p(x);
-    p("curr_pt");
-    p(curr_pt);
-    p("next_ctrl_pt");
-    p(next_ctrl_pt);
-    p("pos_idx");
-    p(prev_pos_idx);
-    p("rounded_dist");
-    p(rounded_dist);
-
-    if (rounded_dist == 0) {
+    // auto x = std::abs(std::sin(elapsed_time_s));
+    float x = elapsed_time_s - prev_pos_idx;
+    if (x > 1) {
       prev_pos_idx++;
+      x = elapsed_time_s - prev_pos_idx;
     }
+
+    auto prev_prev_ctrl_pt = control_point_locations[(prev_pos_idx - 1) % 9];
+    auto prev_ctrl_pt = control_point_locations[prev_pos_idx % 9];
+    auto curr_pt = prev_ctrl_pt;
+    auto next_ctrl_pt = control_point_locations[(prev_pos_idx + 1) % 9];
+    auto next_next_ctrl_pt = control_point_locations[(prev_pos_idx + 2) % 9];
 
     if (interpolate) {
       if (use_linear) {
         curr_pt = interpolation::evalLERP(prev_ctrl_pt, next_ctrl_pt, x);
-        //! \todo Compute the interpolated position
-        //!       using the linear interpolation.
       } else {
         curr_pt = interpolation::evalCatmullRom(prev_prev_ctrl_pt, prev_ctrl_pt,
                                                 next_ctrl_pt, next_next_ctrl_pt,
                                                 catmull_rom_tension, x);
-        //! \todo Compute the interpolated position
-        //!       using the Catmull-Rom interpolation;
-        //!       use the `catmull_rom_tension`
-        //!       variable as your tension argument.
       }
-      //! TODO Interpolate the movement of a shape between various
-      //!        control points.
       circle_rings.get_transform().SetTranslate(curr_pt);
     }
 
