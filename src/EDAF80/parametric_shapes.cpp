@@ -191,7 +191,6 @@ parametric_shapes::createSphere(float const radius,
 
   size_t index = 0u;
   float theta = 0.0f;
-  float phi = 0.0f;
   for (unsigned int i = 0u; i < horizontal_vertices_count; ++i) {
     assert(0 <= theta && theta <= glm::two_pi<float>());
     // p(theta);
@@ -199,6 +198,7 @@ parametric_shapes::createSphere(float const radius,
     float const cos_theta = std::cos(theta);
     float const sin_theta = std::sin(theta);
 
+    float phi = 0.0f;
     for (unsigned int j = 0u; j < vertical_vertices_count; ++j) {
       assert(0 <= phi && phi <= glm::pi<float>());
 
@@ -248,7 +248,7 @@ parametric_shapes::createSphere(float const radius,
               (static_cast<float>(horizontal_vertices_count)),
           0.0f);
 
-      phi = d_phi * j;
+      phi += d_phi;
       ++index;
     }
     theta += d_theta;
@@ -267,16 +267,16 @@ parametric_shapes::createSphere(float const radius,
 
   for (unsigned int i = 0u; i < horizontal_edges_count + 1; ++i) {
     for (unsigned int j = 0u; j < vertical_edges_count; ++j) {
-      index_sets[index] =
-          glm::uvec3((vertical_edges_count * (i + 0u) + (j + 0u)) % max_node,
-                     (vertical_edges_count * (i + 0u) + (j + 1u)) % max_node,
-                     (vertical_edges_count * (i + 1u) + (j + 1u)) % max_node);
+      index_sets[index] = glm::uvec3(
+          (horizontal_vertices_count * (i + 0u) + (j + 0u)) % max_node,
+          (horizontal_vertices_count * (i + 0u) + (j + 1u)) % max_node,
+          (horizontal_vertices_count * (i + 1u) + (j + 1u)) % max_node);
       ++index;
 
-      index_sets[index] =
-          glm::uvec3((vertical_edges_count * (i + 0u) + (j + 0u)) % max_node,
-                     (vertical_edges_count * (i + 1u) + (j + 1u)) % max_node,
-                     (vertical_edges_count * (i + 1u) + (j + 0u)) % max_node);
+      index_sets[index] = glm::uvec3(
+          (horizontal_vertices_count * (i + 0u) + (j + 0u)) % max_node,
+          (horizontal_vertices_count * (i + 1u) + (j + 1u)) % max_node,
+          (horizontal_vertices_count * (i + 1u) + (j + 0u)) % max_node);
       ++index;
     }
   }

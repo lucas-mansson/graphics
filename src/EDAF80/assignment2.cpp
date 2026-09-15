@@ -153,7 +153,7 @@ void edaf80::Assignment2::run() {
 
   // Set whether to interpolate the position of an object or not; it can
   // always be changed at runtime through the "Scene Controls" window.
-  bool interpolate = true;
+  bool interpolate = false;
 
   // Set whether to show the control points or not; it can always be changed
   // at runtime through the "Scene Controls" window.
@@ -190,9 +190,10 @@ void edaf80::Assignment2::run() {
 
   std::int32_t program_index = 0;
   float elapsed_time_s = 0.0f;
-  auto cull_mode = bonobo::cull_mode_t::disabled;
-  auto polygon_mode = bonobo::polygon_mode_t::fill;
-  // auto polygon_mode = bonobo::polygon_mode_t::line;
+  // auto cull_mode = bonobo::cull_mode_t::disabled;
+  auto cull_mode = bonobo::cull_mode_t::front_faces;
+  // auto polygon_mode = bonobo::polygon_mode_t::fill;
+  auto polygon_mode = bonobo::polygon_mode_t::line;
   bool show_logs = true;
   bool show_gui = true;
   bool show_basis = false;
@@ -266,7 +267,7 @@ void edaf80::Assignment2::run() {
     }
 
     circle_rings.render(mCamera.GetWorldToClipMatrix());
-    if (true || show_control_points) {
+    if (show_control_points) {
       for (auto const &control_point : control_points) {
         control_point.render(mCamera.GetWorldToClipMatrix());
       }
