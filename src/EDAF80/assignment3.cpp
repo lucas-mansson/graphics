@@ -1,4 +1,5 @@
 #include "assignment3.hpp"
+#include "core/helpers.hpp"
 #include "interpolation.hpp"
 #include "parametric_shapes.hpp"
 
@@ -63,6 +64,17 @@ void edaf80::Assignment3::run() {
     return;
   }
 
+  GLuint skybox_shader = 0u;
+  program_manager.CreateAndRegisterProgram(
+      "Fallback",
+      {{ShaderType::vertex, "EDAF80/skybox.vert"},
+       {ShaderType::fragment, "EDAF80/skybox.frag"}},
+      skybox_shader);
+  if (skybox_shader == 0u) {
+    LogError("Failed to load skybox shader");
+    return;
+  }
+
   GLuint diffuse_shader = 0u;
   program_manager.CreateAndRegisterProgram(
       "Diffuse",
@@ -117,9 +129,19 @@ void edaf80::Assignment3::run() {
     return;
   }
 
+  GLuint cubemap = bonobo::loadTextureCubeMap(
+      config::resources_path("cubemaps/NissiBeach2/posx.jpg"),
+      config::resources_path("cubemaps/NissiBeach2/negx.jpg"),
+      config::resources_path("cubemaps/NissiBeach2/posy.jpg"),
+      config::resources_path("cubemaps/NissiBeach2/negy.jpg"),
+      config::resources_path("cubemaps/NissiBeach2/posz.jpg"),
+      config::resources_path("cubemaps/NissiBeach2/negz.jpg"));
+
   Node skybox;
   skybox.set_geometry(skybox_shape);
-  skybox.set_program(&fallback_shader, set_uniforms);
+  skybox.set_program(&skybox_shader, set_uniforms);
+  skybox.add_texture("cubemap", cubemap, GL_TEXTURE_CUBE_MAP);
+
 
   auto demo_shape = parametric_shapes::createSphere(1.5f, 40u, 40u);
   if (demo_shape.vao == 0u) {
@@ -138,6 +160,7 @@ void edaf80::Assignment3::run() {
   demo_sphere.set_material_constants(demo_material);
   demo_sphere.set_program(&fallback_shader, phong_set_uniforms);
   demo_sphere.set_program(&texcoord_shader, phong_set_uniforms);
+
 
   glClearDepthf(1.0f);
   glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
