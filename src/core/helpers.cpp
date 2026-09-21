@@ -533,9 +533,9 @@ bonobo::loadTextureCubeMap(std::string const &posx, std::string const &negx,
   // start by filling the face sitting on the negative side of the
   // x-axis by specifying GL_TEXTURE_CUBE_MAP_NEGATIVE_X.
   std::vector<decltype(GL_TEXTURE_CUBE_MAP_NEGATIVE_X)> faces = {
-      GL_TEXTURE_CUBE_MAP_NEGATIVE_X, GL_TEXTURE_CUBE_MAP_POSITIVE_X,
-      GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, GL_TEXTURE_CUBE_MAP_POSITIVE_Y,
-      GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, GL_TEXTURE_CUBE_MAP_POSITIVE_Z};
+      GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+      GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+      GL_TEXTURE_CUBE_MAP_POSITIVE_Z, GL_TEXTURE_CUBE_MAP_NEGATIVE_Z};
 
   //! \todo repeat now the texture filling for the 5 remaining faces
 
