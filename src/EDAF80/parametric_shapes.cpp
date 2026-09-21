@@ -194,7 +194,6 @@ parametric_shapes::createSphere(float const radius,
   float theta = 0.0f;
   for (unsigned int i = 0u; i < horizontal_vertices_count + 1; ++i) {
     assert(0 <= theta && theta <= glm::two_pi<float>());
-    // p(theta);
 
     float const cos_theta = std::cos(theta);
     float const sin_theta = std::sin(theta);
@@ -231,10 +230,10 @@ parametric_shapes::createSphere(float const radius,
       normals[index] = normal;
 
       // texture coords
-      auto const tex_x =
-          static_cast<float>(j) / (static_cast<float>(vertical_vertices_count));
-      auto const tex_y = static_cast<float>(i) /
+      auto const tex_x = static_cast<float>(i) /
                          (static_cast<float>(horizontal_vertices_count));
+      auto const tex_y =
+          static_cast<float>(j) / (static_cast<float>(vertical_vertices_count));
       auto const tex_z =
           0.0f; // static_cast<float>(i) /
                 //(static_cast<float>(horizontal_vertices_count));
@@ -245,13 +244,13 @@ parametric_shapes::createSphere(float const radius,
     }
     theta += d_theta;
   }
-  p(texcoords);
+  p(vertices.size());
 
   // 2. generate the indices to group the vertices into triangles,
   // plus one since we want to have space for connecting the last nodes to the
   // first ones
   auto index_sets = std::vector<glm::uvec3>(2u * vertical_edges_count *
-                                            (horizontal_edges_count));
+                                            horizontal_edges_count);
 
   index = 0u;
   for (unsigned int i = 0u; i < horizontal_edges_count; ++i) {
