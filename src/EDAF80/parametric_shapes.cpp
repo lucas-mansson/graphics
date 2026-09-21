@@ -254,22 +254,17 @@ parametric_shapes::createSphere(float const radius,
                                             (horizontal_edges_count));
 
   index = 0u;
-  const auto max_node = // used as mod to connect last nodes with the first ones
-      vertical_edges_count * (horizontal_edges_count) + (vertical_edges_count);
-
   for (unsigned int i = 0u; i < horizontal_edges_count; ++i) {
     for (unsigned int j = 0u; j < vertical_edges_count; ++j) {
-      index_sets[index] = glm::uvec3(
-          (horizontal_vertices_count * (i + 0u) + (j + 0u)) % max_node,
-          (horizontal_vertices_count * (i + 0u) + (j + 1u)) % max_node,
-          (horizontal_vertices_count * (i + 1u) + (j + 1u)) % max_node);
-      ++index;
+      index_sets[index++] =
+          glm::uvec3((horizontal_vertices_count * (i + 0u) + (j + 0u)),
+                     (horizontal_vertices_count * (i + 0u) + (j + 1u)),
+                     (horizontal_vertices_count * (i + 1u) + (j + 1u)));
 
-      index_sets[index] = glm::uvec3(
-          (horizontal_vertices_count * (i + 0u) + (j + 0u)) % max_node,
-          (horizontal_vertices_count * (i + 1u) + (j + 1u)) % max_node,
-          (horizontal_vertices_count * (i + 1u) + (j + 0u)) % max_node);
-      ++index;
+      index_sets[index++] =
+          glm::uvec3((horizontal_vertices_count * (i + 0u) + (j + 0u)),
+                     (horizontal_vertices_count * (i + 1u) + (j + 1u)),
+                     (horizontal_vertices_count * (i + 1u) + (j + 0u)));
     }
   }
 

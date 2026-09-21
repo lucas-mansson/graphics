@@ -121,7 +121,7 @@ void edaf80::Assignment3::run() {
   skybox.set_geometry(skybox_shape);
   skybox.set_program(&fallback_shader, set_uniforms);
 
-  auto demo_shape = parametric_shapes::createSphere(1.5f, 40u, 40u);
+  auto demo_shape = parametric_shapes::createSphere(1.5f, 2u, 2u);
   if (demo_shape.vao == 0u) {
     LogError("Failed to retrieve the mesh for the demo sphere");
     return;
