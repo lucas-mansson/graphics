@@ -153,11 +153,11 @@ void edaf80::Assignment2::run() {
 
   // Set whether to interpolate the position of an object or not; it can
   // always be changed at runtime through the "Scene Controls" window.
-  bool interpolate = false;
+  bool interpolate = true;
 
   // Set whether to show the control points or not; it can always be changed
   // at runtime through the "Scene Controls" window.
-  bool show_control_points = false;
+  bool show_control_points = true;
 
   auto circle_rings = Node();
   circle_rings.set_geometry(shape);
@@ -190,10 +190,10 @@ void edaf80::Assignment2::run() {
 
   std::int32_t program_index = 0;
   float elapsed_time_s = 0.0f;
-  // auto cull_mode = bonobo::cull_mode_t::disabled;
-  auto cull_mode = bonobo::cull_mode_t::front_faces;
-  // auto polygon_mode = bonobo::polygon_mode_t::fill;
-  auto polygon_mode = bonobo::polygon_mode_t::line;
+  auto cull_mode = bonobo::cull_mode_t::disabled;
+  // auto cull_mode = bonobo::cull_mode_t::front_faces;
+  auto polygon_mode = bonobo::polygon_mode_t::fill;
+  // auto polygon_mode = bonobo::polygon_mode_t::line;
   bool show_logs = true;
   bool show_gui = true;
   bool show_basis = false;
@@ -249,12 +249,17 @@ void edaf80::Assignment2::run() {
       x = elapsed_time_s - prev_pos_idx;
     }
 
-    auto prev_prev_ctrl_pt = control_point_locations[(prev_pos_idx - 1) % 9];
-    auto prev_ctrl_pt = control_point_locations[prev_pos_idx % 9];
-    auto curr_pt = prev_ctrl_pt;
-    auto next_ctrl_pt = control_point_locations[(prev_pos_idx + 1) % 9];
-    auto next_next_ctrl_pt = control_point_locations[(prev_pos_idx + 2) % 9];
+    auto const ctrl_pts_size = control_point_locations.size();
 
+    auto prev_prev_ctrl_pt =
+        control_point_locations[(prev_pos_idx - 1) % ctrl_pts_size];
+    auto prev_ctrl_pt = control_point_locations[prev_pos_idx % ctrl_pts_size];
+    auto next_ctrl_pt =
+        control_point_locations[(prev_pos_idx + 1) % ctrl_pts_size];
+    auto next_next_ctrl_pt =
+        control_point_locations[(prev_pos_idx + 2) % ctrl_pts_size];
+
+    glm::vec3 curr_pt;
     if (interpolate) {
       if (use_linear) {
         curr_pt = interpolation::evalLERP(prev_ctrl_pt, next_ctrl_pt, x);

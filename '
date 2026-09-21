@@ -178,8 +178,7 @@ parametric_shapes::createSphere(float const radius,
   auto const horizontal_vertices_count = horizontal_edges_count + 1u;
   auto const vertical_vertices_count = vertical_edges_count + 1u;
 
-  auto const nbr_vertices =
-      vertical_vertices_count * (horizontal_vertices_count + 1);
+  auto const nbr_vertices = vertical_vertices_count * horizontal_vertices_count;
 
   auto vertices = std::vector<glm::vec3>(nbr_vertices);
   auto normals = std::vector<glm::vec3>(nbr_vertices);
@@ -192,7 +191,7 @@ parametric_shapes::createSphere(float const radius,
 
   size_t index = 0u;
   float theta = 0.0f;
-  for (unsigned int i = 0u; i < horizontal_vertices_count + 1; ++i) {
+  for (unsigned int i = 0u; i < horizontal_vertices_count; ++i) {
     assert(0 <= theta && theta <= glm::two_pi<float>());
     // p(theta);
 
@@ -212,14 +211,26 @@ parametric_shapes::createSphere(float const radius,
       auto const z_vertex = radius * cos_theta * sin_phi;
       vertices[index] = glm::vec3(x_vertex, y_vertex, z_vertex);
 
-      // tangent simplified
+      // tangent
+      /*
+      auto const x_tangent = radius * cos_theta * sin_phi;
+      auto const y_tangent = 0;
+      auto const z_tangent = -radius * sin_theta * sin_phi;
+      */
+      // simplified?
       auto const x_tangent = cos_theta;
       auto const y_tangent = 0;
       auto const z_tangent = -sin_theta;
       auto const tangent = glm::vec3(x_tangent, y_tangent, z_tangent);
       tangents[index] = tangent;
 
-      // binormal simplified
+      // binormal
+      /*
+      auto const x_binormal = radius * sin_theta * cos_phi;
+      auto const y_binormal = radius * sin_phi;
+      auto const z_binormal = radius * cos_theta * cos_phi;
+      */
+      // simplified?
       auto const x_binormal = sin_theta * cos_phi;
       auto const y_binormal = sin_phi;
       auto const z_binormal = cos_theta * cos_phi;
@@ -230,14 +241,14 @@ parametric_shapes::createSphere(float const radius,
       auto const normal = glm::cross(tangent, binormal);
       normals[index] = normal;
 
-      // texture coords
       auto const tex_x =
           static_cast<float>(j) / (static_cast<float>(vertical_vertices_count));
       auto const tex_y = static_cast<float>(i) /
                          (static_cast<float>(horizontal_vertices_count));
-      auto const tex_z =
-          0.0f; // static_cast<float>(i) /
-                //(static_cast<float>(horizontal_vertices_count));
+      auto const tex_z = static_cast<float>(i) /
+                         (static_cast<float>(horizontal_vertices_count));
+
+      // texture coords
       texcoords[index] = glm::vec3(tex_x, tex_y, tex_z);
 
       phi += d_phi;
@@ -245,19 +256,19 @@ parametric_shapes::createSphere(float const radius,
     }
     theta += d_theta;
   }
-  p(texcoords);
+  // p(vertices);
 
   // 2. generate the indices to group the vertices into triangles,
   // plus one since we want to have space for connecting the last nodes to the
   // first ones
   auto index_sets = std::vector<glm::uvec3>(2u * vertical_edges_count *
-                                            (horizontal_edges_count));
+                                            (horizontal_edges_count + 1));
 
   index = 0u;
   const auto max_node = // used as mod to connect last nodes with the first ones
       vertical_edges_count * (horizontal_edges_count) + (vertical_edges_count);
 
-  for (unsigned int i = 0u; i < horizontal_edges_count; ++i) {
+  for (unsigned int i = 0u; i < horizontal_edges_count + 1; ++i) {
     for (unsigned int j = 0u; j < vertical_edges_count; ++j) {
       index_sets[index] = glm::uvec3(
           (horizontal_vertices_count * (i + 0u) + (j + 0u)) % max_node,
