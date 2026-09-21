@@ -244,7 +244,6 @@ parametric_shapes::createSphere(float const radius,
     }
     theta += d_theta;
   }
-  p(vertices.size());
 
   // 2. generate the indices to group the vertices into triangles,
   // plus one since we want to have space for connecting the last nodes to the
