@@ -120,7 +120,7 @@ void edaf80::Assignment3::run() {
 
   GLuint skybox_shader = 0u;
   program_manager.CreateAndRegisterProgram(
-      "Fallback",
+      "Skybox",
       {{ShaderType::vertex, "EDAF80/skybox.vert"},
        {ShaderType::fragment, "EDAF80/skybox.frag"}},
       skybox_shader);
@@ -155,10 +155,25 @@ void edaf80::Assignment3::run() {
   demo_material.specular = glm::vec3(1.0f, 1.0f, 1.0f);
   demo_material.shininess = 10.0f;
 
+  GLuint phong_shader = 0u;
+  program_manager.CreateAndRegisterProgram(
+      "Phong shader",
+      {{ShaderType::vertex, "EDAF80/phong.vert"},
+       {ShaderType::fragment, "EDAF80/phong.frag"}},
+      phong_shader);
+
+  if (skybox_shader == 0u) {
+    LogError("Failed to load phong shader");
+    return;
+  }
+
+  GLuint tex = bonobo::loadTexture2D(
+      config::resources_path("textures/leather_red_02_coll1_2k.jpg"));
   Node demo_sphere;
   demo_sphere.set_geometry(demo_shape);
   demo_sphere.set_material_constants(demo_material);
-  demo_sphere.set_program(&fallback_shader, phong_set_uniforms);
+  demo_sphere.set_program(&phong_shader, phong_set_uniforms);
+  demo_sphere.add_texture("tex", tex, GL_TEXTURE_2D);
 
   glClearDepthf(1.0f);
   glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
