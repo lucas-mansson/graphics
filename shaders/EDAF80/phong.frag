@@ -43,13 +43,13 @@ void main()
         // map [0,1] -> [-1, 1]
         vec3 n = normalize(texture_rgb * 2.0 - 1.0);
 
-        vec4 tbn_n = vec4(TBN * n, 0);
+        vec4 normal_res = normal_model_to_world * vec4(TBN * n, 0);
 
-        normal = (normal_model_to_world * tbn_n).xyz;
+        normal = normal_res.xyz;
     }
 
-    vec3 diffuse = max(dot(normal, light), 0.0) * texture(diffuse_texture, fs_in.texture_coordinates).xyz /* * diffuse_colour */;
-    vec3 specular = pow(max(dot(reflect_v, view), 0.0), shininess_value) * texture(specular_map_texture, fs_in.texture_coordinates).xyz /* * specular_colour */;
+    vec3 diffuse = max(dot(normal, light), 0.0) * texture(diffuse_texture, fs_in.texture_coordinates).xyz * diffuse_colour ;
+    vec3 specular = pow(max(dot(reflect_v, view), 0.0), shininess_value) * texture(specular_map_texture, fs_in.texture_coordinates).xyz * specular_colour ;
 
     frag_color.xyz = ambient_colour + diffuse + specular;
     frag_color.w = 1.0;
