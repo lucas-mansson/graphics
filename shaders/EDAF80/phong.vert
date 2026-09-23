@@ -42,20 +42,6 @@ out VS_OUT {
 
 void main()
 {
-	//vs_out.normal = normal;
-	//gl_Position = vertex_world_to_clip * vertex_model_to_world * vec4(vertex, 1.0);
-
-    // Camera space version
-    /*
-    vec3 posCamSpace = (ModelView*vec4(vPos,1)).xyz;
-
-    vs_out.normal = (ModelViewIT*vec4(vNormal,0)).xyz;
-    vs_out.view = -posCamSpace; // vector from point to cam
-    vs_out.light = (View*vec4(LightPos,1)).xyz - posCamSpace;
-
-    gl_Position = ModelViewProj*vec4(vPos,1); 
-    */
-
     // World space version
     vec3 vertex_world_position = (vertex_model_to_world * vec4(vertex,1)).xyz;
 
