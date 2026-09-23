@@ -169,6 +169,8 @@ void edaf80::Assignment3::run() {
 
   GLuint my_texture = bonobo::loadTexture2D(
       config::resources_path("textures/leather_red_02_coll1_2k.jpg"));
+  // GLuint my_texture = bonobo::loadTexture2D(
+  // config::resources_path("textures/leather_red_02_rough_2k.jpg"));
   Node demo_sphere;
   demo_sphere.set_geometry(demo_shape);
   demo_sphere.set_material_constants(demo_material);

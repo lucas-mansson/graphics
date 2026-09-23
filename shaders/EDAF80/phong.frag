@@ -3,10 +3,12 @@
 uniform vec3 light_position;
 uniform sampler2D my_texture;
 
-uniform vec3 ka; // Material ambient
-uniform vec3 kd; // Material diffuse
-uniform vec3 ks; // Material specular
-uniform float shininess; 
+uniform vec3 ambient_colour; // Material ambient
+uniform vec3 diffuse_colour; // Material diffuse
+uniform vec3 specular_colour; // Material specular
+uniform float shininess_value; 
+uniform float index_of_refraction_value; 
+uniform float opacity_value;
 
 in VS_OUT {
 	vec3 normal;
@@ -24,11 +26,12 @@ void main()
     vec3 V = normalize(fs_in.view);
     vec3 R = normalize(reflect(-L, N)); 
 
-    vec3 diffuse = kd * max(dot(N, L), 0.0);
-    vec3 specular = ks * pow(max(dot(R, V), 0.0), shininess); 
+    vec3 diffuse = diffuse_colour * max(dot(N, L), 0.0) * texture(my_texture, fs_in.texture_coordinates).xyz;
+    //vec3 diffuse = texture(my_texture, fs_in.texture_coordinates).rgb;
+    vec3 specular = specular_colour * pow(max(dot(R, V), 0.0), shininess_value); 
 
-    frag_color.xyz = ka + diffuse + specular;
+    frag_color.xyz = ambient_colour + diffuse + specular;
     frag_color.w = 1.0;
 
-    frag_color = texture(my_texture, fs_in.texture_coordinates);
+    //frag_color = ;
 }
