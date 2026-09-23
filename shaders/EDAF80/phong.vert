@@ -21,10 +21,6 @@ uniform mat4 vertex_model_to_world;
 uniform mat4 normal_model_to_world;
 uniform mat4 vertex_world_to_clip;
 
-uniform mat4 ModelViewProj; // Model -> Clip space
-uniform mat4 World; // Model -> World space
-uniform mat4 WorldIT; // Inverse transpose
-
 uniform vec3 light_position; // Defined in world space
 uniform vec3 camera_position; // Defined in world space
 
@@ -35,6 +31,8 @@ uniform vec3 camera_position; // Defined in world space
 // shaders/EDAF80/diffuse.frag.
 out VS_OUT {
 	vec3 normal;
+	vec3 tangent;
+	vec3 binormal;
     vec3 light;
     vec3 view;
     vec2 texture_coordinates;
@@ -46,6 +44,9 @@ void main()
     vec3 vertex_world_position = (vertex_model_to_world * vec4(vertex,1)).xyz;
 
     vs_out.normal = (normal_model_to_world * vec4(normal, 0)).xyz;
+    vs_out.tangent = (normal_model_to_world * vec4(tangent, 0)).xyz;
+    vs_out.binormal = (normal_model_to_world * vec4(binormal, 0)).xyz;
+
     vs_out.light = light_position - vertex_world_position;
     vs_out.view = camera_position - vertex_world_position;
     vs_out.texture_coordinates = texcoord.xy;
