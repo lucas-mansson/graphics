@@ -62,6 +62,16 @@ void edaf80::Assignment4::run() {
     return;
   }
 
+  GLuint water_shader = 0u;
+  program_manager.CreateAndRegisterProgram(
+      "Normal",
+      {{ShaderType::vertex, "EDAF80/water.vert"},
+       {ShaderType::fragment, "EDAF80/water.frag"}},
+      water_shader);
+  if (water_shader == 0u) {
+    LogError("Failed to load normal shader");
+  }
+
   auto light_position = glm::vec3(-2.0f, 4.0f, 2.0f);
   auto const set_uniforms = [&light_position](GLuint program) {
     glUniform3fv(glGetUniformLocation(program, "light_position"), 1,
@@ -74,6 +84,10 @@ void edaf80::Assignment4::run() {
   //
 
   float elapsed_time_s = 0.0f;
+  auto const water_elapsed_time = [&elapsed_time_s](GLuint program) {
+    glUniform1f(glGetUniformLocation(program, "elapsed_time_s"),
+                elapsed_time_s);
+  };
 
   //
   // TODO: Load your geometry
