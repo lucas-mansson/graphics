@@ -1,6 +1,7 @@
 #include "parametric_shapes.hpp"
 #include "core/Log.h"
 
+#include <glm/ext/vector_float3.hpp>
 #include <glm/glm.hpp>
 
 #include <array>
@@ -37,28 +38,72 @@ parametric_shapes::createQuad(float const width, float const height,
   auto const bR = glm::vec3(width, 0.0f, 0.0f);
   auto const tL = glm::vec3(width, 0.0f, height);
   auto const tR = glm::vec3(0.0f, 0.0f, height);
-  auto const vertices = std::array<glm::vec3, 4>{bL, bR, tL, tR};
+
+  auto const horizontal_edges_count = horizontal_split_count + 1u;
+  auto const vertical_edges_count = vertical_split_count + 1u;
+
+  auto const horizontal_vertices_count = horizontal_edges_count + 1u;
+  auto const vertical_vertices_count = vertical_edges_count + 1u;
+
+  auto const nbr_vertices =
+      vertical_vertices_count * (horizontal_vertices_count);
+
+  auto vertices = std::vector<glm::vec3>(nbr_vertices);
+
+  float const dx = width / horizontal_edges_count;
+  float const dz = height / vertical_edges_count;
+
+  size_t index = 0;
+  for (int i = 0; i < horizontal_vertices_count; i++) {
+    float x_vertex = i * dx;
+    for (int j = 0; j < vertical_vertices_count; j++) {
+      float z_vertex = j * dz;
+      vertices[index] = glm::vec3(x_vertex, 0.0f, z_vertex);
+      index++;
+    }
+  }
+
+  /*
+  auto const vertices = std::array<glm::vec3, 4>{
+      glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, height),
+      glm::vec3(width, 0.0f, 0.0f), glm::vec3(width, 0.0f, height)};
+      */
+
+  p("vertices");
+  p(vertices);
+  p("old_vertices");
+  // p(old_vertices);
 
   auto const index_sets =
-      std::array<glm::uvec3, 2>{glm::uvec3(0u, 1u, 2u), glm::uvec3(0u, 2u, 3u)};
+      std::array<glm::uvec3, 2>{glm::uvec3(0u, 1u, 3u), glm::uvec3(0u, 3u, 2u)};
+
+  /*
+  auto index_sets = std::vector<glm::uvec3>(2u * vertical_edges_count *
+                                            horizontal_edges_count);
+
+  index = 0u;
+  for (unsigned int i = 0u; i < horizontal_edges_count; ++i) {
+    for (unsigned int j = 0u; j < vertical_edges_count; ++j) {
+      index_sets[index++] =
+          glm::uvec3((horizontal_vertices_count * (i + 0u) + (j + 0u)),
+                     (horizontal_vertices_count * (i + 0u) + (j + 1u)),
+                     (horizontal_vertices_count * (i + 1u) + (j + 1u)));
+
+      index_sets[index++] =
+          glm::uvec3((horizontal_vertices_count * (i + 0u) + (j + 0u)),
+                     (horizontal_vertices_count * (i + 1u) + (j + 1u)),
+                     (horizontal_vertices_count * (i + 1u) + (j + 0u)));
+    }
+  }
+  */
+  p("index_sets");
+  p(index_sets);
 
   bonobo::mesh_data data;
   /* mesh_data contains:
    * vao - Vertex Array Object
    * bo  - Buffer Object
    */
-
-  if (horizontal_split_count > 0u || vertical_split_count > 0u) {
-    LogError("parametric_shapes::createQuad() does not support tesselation.");
-    return data;
-  }
-
-  //
-  // NOTE:
-  //
-  // Only the values preceeded by a `\todo` tag should be changed, the
-  // other ones are correct!
-  //
 
   // Create a Vertex Array Object: it will remember where we stored the
   // data on the GPU, and  which part corresponds to the vertices, which
@@ -90,7 +135,7 @@ parametric_shapes::createQuad(float const width, float const height,
   // and therefore bind the buffer to the corresponding target.
   glBindBuffer(GL_ARRAY_BUFFER, *bufferObjectPtr);
 
-  const auto verticesBufferSize = sizeof(vertices);
+  const auto verticesBufferSize = vertices.size() * sizeof(vertices[0]);
   glBufferData(
       GL_ARRAY_BUFFER,
       /*! \how many bytes should the buffer contain? */
@@ -134,10 +179,9 @@ parametric_shapes::createQuad(float const width, float const height,
       reinterpret_cast<GLvoid const *>(0x0));
 
   // Now, let's allocate a second one for the indices.
-
   auto const indicesBufferObjectPtr = &data.ibo;
   // Have the buffer's name stored into `data.ibo`.
-  glGenBuffers(1, /*! \todo fill me */ indicesBufferObjectPtr); // TODO done
+  glGenBuffers(1, indicesBufferObjectPtr); // TODO done
 
   // We still want a 1D-array, but this time it should be a 1D-array of
   // elements, aka. indices!
@@ -154,12 +198,8 @@ parametric_shapes::createQuad(float const width, float const height,
       /* inform OpenGL that the data is modified once, but used often */
       GL_STATIC_DRAW);
 
-  const auto nbrIndicies =
-      sizeof(index_sets) /
-      sizeof(index_sets[0][0]); // number of indices in the index_sets total
-                                //
-  data.indices_nb =
-      /*! \todo how many indices do we have? */ nbrIndicies; // TODO done
+  const auto nbrIndicies = index_sets.size() * index_sets[0].length();
+  data.indices_nb = nbrIndicies;
 
   // All the data has been recorded, we can unbind them.
   glBindVertexArray(0u);
@@ -249,8 +289,6 @@ parametric_shapes::createSphere(float const radius,
   }
 
   // 2. generate the indices to group the vertices into triangles,
-  // plus one since we want to have space for connecting the last nodes to the
-  // first ones
   auto index_sets = std::vector<glm::uvec3>(2u * vertical_edges_count *
                                             horizontal_edges_count);
 
