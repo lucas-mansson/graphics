@@ -32,9 +32,12 @@ bonobo::mesh_data
 parametric_shapes::createQuad(float const width, float const height,
                               unsigned int const horizontal_split_count,
                               unsigned int const vertical_split_count) {
-  auto const vertices = std::array<glm::vec3, 4>{
-      glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(width, 0.0f, 0.0f),
-      glm::vec3(width, height, 0.0f), glm::vec3(0.0f, height, 0.0f)};
+
+  auto const bL = glm::vec3(0.0f, 0.0f, 0.0f);
+  auto const bR = glm::vec3(width, 0.0f, 0.0f);
+  auto const tL = glm::vec3(width, 0.0f, height);
+  auto const tR = glm::vec3(0.0f, 0.0f, height);
+  auto const vertices = std::array<glm::vec3, 4>{bL, bR, tL, tR};
 
   auto const index_sets =
       std::array<glm::uvec3, 2>{glm::uvec3(0u, 1u, 2u), glm::uvec3(0u, 2u, 3u)};
