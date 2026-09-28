@@ -31,17 +31,22 @@ void main()
     vec3 n_bump = normalize(n0 + n1 + n2); // This is in tangent space
     vec3 normal = normalize(TBN * n_bump);
 
-    vec3 V = normalize(fs_in.view);
-    vec3 R = normalize(reflect(-V, normal));
-    vec4 reflection = texture(cubemap, R);
+    vec3 view = normalize(fs_in.view);
+    vec3 reflect_v = normalize(reflect(-view, normal));
+    vec4 reflection = texture(cubemap, reflect_v);
+
+    float eta = 1.0 / 1.33;
+    vec3 refraction_v = refract(view, normal, eta);
+    vec4 refraction = texture(cubemap, refraction_v);
 
     float r0 = 0.02037;
-    float fresnel = r0 + (1 - r0) * pow(1 - dot(V, normal), 5);
+    float fresnel = r0 + (1 - r0) * pow(1 - dot(view, normal), 5);
 
-    float facing = 1.0 - max(dot(V, normal), 0.0);
+    float facing = 1.0 - max(dot(view, normal), 0.0);
     vec4 color_deep = vec4(0.0, 0.0, 0.1, 1.0);
     vec4 color_shallow = vec4(0.0, 0.5, 0.5, 1.0);
     vec4 water_color = mix(color_deep, color_shallow, facing);
 
-	frag_color = water_color + reflection * fresnel;
+	frag_color = water_color + (reflection * fresnel) + (refraction * (1 - fresnel));
+	//frag_color = (refraction * (1 - fresnel));
 }
