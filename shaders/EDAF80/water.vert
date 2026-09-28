@@ -22,10 +22,9 @@ struct Wave {
     float sharpness;
 };
 
-float wave(vec2 position, vec2 direction, float amplitude, float frequency, float phase, float sharpness, float time)
+float wave(Wave w, float time)
 {
-
-    return amplitude * pow(sin((position.x * direction.x + position.y * direction.y) * frequency + phase * time) * 0.5 + 0.5, sharpness);
+    return w.amplitude * pow(sin((w.position.x * w.direction.x + w.position.y * w.direction.y) * w.frequency + w.phase * time) * 0.5 + 0.5, w.sharpness);
 }
 
 void main()
@@ -48,9 +47,7 @@ void main()
     wave2.phase = 1.3;
     wave2.sharpness = 2.0;
 
-    displaced_vertex.y += 
-        wave(wave1.position, wave1.direction, wave1.amplitude, wave1.frequency, wave1.phase, wave1.sharpness, elapsed_time_s)
-        + wave(wave2.position, wave2.direction, wave2.amplitude, wave2.frequency, wave2.phase, wave2.sharpness, elapsed_time_s);
+    displaced_vertex.y += wave(wave1, elapsed_time_s) + wave(wave2, elapsed_time_s);
 
     vs_out.vertex = vec3(vertex_model_to_world * vec4(displaced_vertex, 1.0));
     vs_out.normal = vec3(normal_model_to_world * vec4(normal, 0.0));
