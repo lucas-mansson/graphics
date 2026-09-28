@@ -19,25 +19,50 @@ struct Wave {
     float amplitude;
     float frequency;
     float phase;
-    float sharpness;
+    int sharpness;
 };
+
+float wave_direction_freq(Wave w, float time) 
+{
+    return (w.position.x * w.direction.x + w.position.y * w.direction.y) * w.frequency + w.phase * time;
+}
+
+float wave_pow(Wave w, int power, float time) 
+{
+    return w.amplitude * pow(sin(wave_direction_freq(w, time)) * 0.5 + 0.5, power);
+}
+
+float wave_derivative_start(Wave w, float time) 
+{
+    return 0.5 * w.sharpness * w.frequency * wave_pow(w, w.sharpness - 1, time) * cos(wave_direction_freq(w, time));
+}
+
+float wave_derivative_x(Wave w, float time) 
+{
+    return wave_derivative_start(w, time) * w.direction.x;
+}
+
+float wave_derivative_z(Wave w, float time) 
+{
+    return wave_derivative_start(w, time) * w.direction.y;
+}
 
 float wave(Wave w, float time)
 {
-    return w.amplitude * pow(sin((w.position.x * w.direction.x + w.position.y * w.direction.y) * w.frequency + w.phase * time) * 0.5 + 0.5, w.sharpness);
+    return wave_pow(w, w.sharpness, time);
 }
 
 void main()
 {
     vec3 displaced_vertex = vertex;
-    // Wave 1
+
     Wave wave1;
     wave1.position = vertex.xz;
     wave1.direction = vec2(-1.0, 0.0);
     wave1.amplitude = 1.0;
     wave1.frequency = 0.2;
     wave1.phase = 0.5;
-    wave1.sharpness = 2.0;
+    wave1.sharpness = 2;
 
     Wave wave2;
     wave2.position = vertex.xz;
@@ -45,9 +70,16 @@ void main()
     wave2.amplitude = 0.5;
     wave2.frequency = 0.4;
     wave2.phase = 1.3;
-    wave2.sharpness = 2.0;
+    wave2.sharpness = 2;
 
-    displaced_vertex.y += wave(wave1, elapsed_time_s) + wave(wave2, elapsed_time_s);
+    float height = wave(wave1, elapsed_time_s) + wave(wave2, elapsed_time_s);
+
+    float height_derivative_x = wave_derivative_x(wave1, elapsed_time_s) + wave_derivative_x(wave2, elapsed_time_s);
+    float height_derivative_z = wave_derivative_z(wave1, elapsed_time_s) + wave_derivative_z(wave2, elapsed_time_s);
+
+    displaced_vertex.y += height; 
+
+    vec3 normal = vec3(-height_derivative_x, 1, -height_derivative_z);
 
     vs_out.vertex = vec3(vertex_model_to_world * vec4(displaced_vertex, 1.0));
     vs_out.normal = vec3(normal_model_to_world * vec4(normal, 0.0));
