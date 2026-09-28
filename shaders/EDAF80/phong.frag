@@ -43,9 +43,7 @@ void main()
         // map [0,1] -> [-1, 1]
         vec3 n = normalize(texture_rgb * 2.0 - 1.0);
 
-        vec4 normal_res = normal_model_to_world * vec4(TBN * n, 0);
-
-        normal = normal_res.xyz;
+        vec3 normal = (normal_model_to_world * vec4(TBN * n, 0)).xyz;
     }
 
     vec3 diffuse = max(dot(normal, light), 0.0) * texture(diffuse_texture, fs_in.texture_coordinates).xyz * diffuse_colour ;

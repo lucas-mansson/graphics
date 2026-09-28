@@ -2,15 +2,27 @@
 
 layout (location = 0) in vec3 vertex;
 layout (location = 1) in vec3 normal;
+layout (location = 2) in vec3 texcoord;
+layout (location = 3) in vec3 tangent;
+layout (location = 4) in vec3 binormal;
 
 uniform mat4 vertex_model_to_world;
 uniform mat4 normal_model_to_world;
 uniform mat4 vertex_world_to_clip;
 uniform float elapsed_time_s;
 
+uniform vec3 camera_position; // Defined in world space
+
 out VS_OUT {
     vec3 vertex;
+    vec3 view;
     vec3 normal;
+    vec3 binormal;
+    vec3 tangent;
+    vec2 texture_coordinates;
+    vec2 normal_coord_0;
+    vec2 normal_coord_1;
+    vec2 normal_coord_2;
 } vs_out;
 
 struct Wave {
@@ -79,10 +91,25 @@ void main()
 
     displaced_vertex.y += height; 
 
-    vec3 normal = vec3(-height_derivative_x, 1, -height_derivative_z);
+    vec3 tangent = normalize(vec3(1, height_derivative_x, 0));
+    vec3 binormal = normalize(vec3(0, height_derivative_z, 1));
+    vec3 normal = normalize(vec3(-height_derivative_x, 1, -height_derivative_z));
 
-    vs_out.vertex = vec3(vertex_model_to_world * vec4(displaced_vertex, 1.0));
-    vs_out.normal = vec3(normal_model_to_world * vec4(normal, 0.0));
+    vec4 vertex_pos = vertex_model_to_world * vec4(displaced_vertex, 1.0);
+    vs_out.vertex = vertex_pos.xyz;
+    vs_out.view = camera_position - vertex;
+    vs_out.normal = normal;
+    vs_out.tangent = tangent;
+    vs_out.binormal = binormal;
+    vs_out.texture_coordinates = texcoord.xy;
 
-    gl_Position = vertex_world_to_clip * vertex_model_to_world * vec4(displaced_vertex, 1.0);
+    vec2 tex_scale = vec2(8, 4);
+    float normal_time = mod(elapsed_time_s, 100.0);
+    vec2 normal_speed = vec2(-0.05, 0.0);
+
+    vs_out.normal_coord_0.xy = texcoord.xy * tex_scale + normal_time * normal_speed;
+    vs_out.normal_coord_1.xy = texcoord.xy * tex_scale * 2 + normal_time * normal_speed * 4;
+    vs_out.normal_coord_2.xy = texcoord.xy * tex_scale * 4 + normal_time * normal_speed * 8;
+
+    gl_Position = vertex_world_to_clip * vertex_pos;
 }

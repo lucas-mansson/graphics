@@ -46,7 +46,7 @@ void edaf80::Assignment4::run() {
   mCamera.mWorld.SetTranslate(glm::vec3(-40.0f, 14.0f, 6.0f));
   mCamera.mWorld.LookAt(glm::vec3(0.0f));
   mCamera.mMouseSensitivity = glm::vec2(0.003f);
-  mCamera.mMovementSpeed = glm::vec3(3.0f); // 3 m/s => 10.8 km/h
+  mCamera.mMovementSpeed = glm::vec3(5.0f); // 3 m/s => 10.8 km/h
   auto camera_position = mCamera.mWorld.GetTranslation();
 
   // Create the shader programs
@@ -73,9 +73,12 @@ void edaf80::Assignment4::run() {
   }
 
   auto light_position = glm::vec3(-2.0f, 4.0f, 2.0f);
-  auto const set_uniforms = [&light_position](GLuint program) {
+  auto const set_uniforms = [&light_position,
+                             &camera_position](GLuint program) {
     glUniform3fv(glGetUniformLocation(program, "light_position"), 1,
                  glm::value_ptr(light_position));
+    glUniform3fv(glGetUniformLocation(program, "camera_position"), 1,
+                 glm::value_ptr(camera_position));
   };
 
   auto skybox_shape = parametric_shapes::createSphere(500.0f, 1000u, 1000u);
@@ -104,8 +107,8 @@ void edaf80::Assignment4::run() {
       config::resources_path("cubemaps/NissiBeach2/posz.jpg"),
       config::resources_path("cubemaps/NissiBeach2/negz.jpg"));
 
-  GLuint normal_map_texture = bonobo::loadTexture2D(
-      config::resources_path("textures/leather_red_02_nor_2k.jpg"));
+  GLuint normal_map_texture =
+      bonobo::loadTexture2D(config::resources_path("textures/waves.png"));
 
   Node skybox;
   skybox.set_geometry(skybox_shape);
@@ -124,9 +127,14 @@ void edaf80::Assignment4::run() {
   //
 
   float elapsed_time_s = 0.0f;
-  auto const water_set_uniforms = [&elapsed_time_s](GLuint program) {
+  auto const water_set_uniforms = [&elapsed_time_s, &light_position,
+                                   &camera_position](GLuint program) {
     glUniform1f(glGetUniformLocation(program, "elapsed_time_s"),
                 elapsed_time_s);
+    glUniform3fv(glGetUniformLocation(program, "light_position"), 1,
+                 glm::value_ptr(light_position));
+    glUniform3fv(glGetUniformLocation(program, "camera_position"), 1,
+                 glm::value_ptr(camera_position));
   };
 
   //
@@ -161,8 +169,8 @@ void edaf80::Assignment4::run() {
 
   auto lastTime = std::chrono::high_resolution_clock::now();
 
-  bool pause_animation = true;
-  bool use_orbit_camera = false;
+  bool pause_animation = false;
+  bool use_orbit_camera = true;
   auto cull_mode = bonobo::cull_mode_t::disabled;
   auto polygon_mode = bonobo::polygon_mode_t::fill;
   bool show_logs = true;
