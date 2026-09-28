@@ -170,8 +170,8 @@ void edaf80::Assignment4::run() {
   auto lastTime = std::chrono::high_resolution_clock::now();
 
   bool pause_animation = false;
-  bool use_orbit_camera = true;
-  auto cull_mode = bonobo::cull_mode_t::disabled;
+  bool use_orbit_camera = false;
+  auto cull_mode = bonobo::cull_mode_t::back_faces;
   auto polygon_mode = bonobo::polygon_mode_t::fill;
   bool show_logs = true;
   bool show_gui = true;

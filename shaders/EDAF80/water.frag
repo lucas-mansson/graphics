@@ -26,6 +26,7 @@ void main()
     vec3 n1 = texture(normal_map_texture, fs_in.normal_coord_1).xyz * 2.0 - 1.0;
     vec3 n2 = texture(normal_map_texture, fs_in.normal_coord_2).xyz * 2.0 - 1.0;
 
+    //vec3 n_bump = normalize(n0 + n1 + n2); // This is in tangent space
     vec3 n_bump = normalize(n0 + n1 + n2); // This is in tangent space
     //vec3 n_bump = vec3(0, 0, 1.0); // This is in tangent space
     mat3 TBN = mat3(fs_in.tangent, fs_in.binormal, fs_in.normal);
@@ -46,6 +47,5 @@ void main()
     vec4 color_shallow = vec4(0.0, 0.5, 0.5, 1.0);
     vec4 water_color = mix(color_deep, color_shallow, facing);
 
-	//frag_color = water_color + reflection;
-    frag_color = vec4(normal * 0.5 + 0.5, 1.0);
+	frag_color = water_color + reflection;
 }
