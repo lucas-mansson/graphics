@@ -125,7 +125,6 @@ void edaf80::Assignment4::run() {
   // TODO: Insert the creation of other shader programs.
   //       (Check how it was done in assignment 3.)
   //
-
   float elapsed_time_s = 0.0f;
   auto const water_set_uniforms = [&elapsed_time_s, &light_position,
                                    &camera_position](GLuint program) {
