@@ -84,7 +84,7 @@ void edaf80::Assignment4::run() {
   //
 
   float elapsed_time_s = 0.0f;
-  auto const water_elapsed_time = [&elapsed_time_s](GLuint program) {
+  auto const water_set_uniforms = [&elapsed_time_s](GLuint program) {
     glUniform1f(glGetUniformLocation(program, "elapsed_time_s"),
                 elapsed_time_s);
   };
@@ -99,7 +99,8 @@ void edaf80::Assignment4::run() {
 
   Node quadNode;
   quadNode.set_geometry(quadShape);
-  quadNode.set_program(&fallback_shader, set_uniforms);
+  // quadNode.set_program(&fallback_shader, set_uniforms);
+  quadNode.set_program(&water_shader, water_set_uniforms);
 
   /*
   demo_sphere.set_material_constants(demo_material);
