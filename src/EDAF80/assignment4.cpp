@@ -78,9 +78,10 @@ void edaf80::Assignment4::run() {
   //
   // TODO: Load your geometry
   //
-  const float quadWidth = 100;
-  const float quadHeight = 100;
-  auto const quadShape = parametric_shapes::createQuad(quadWidth, quadHeight);
+  const float quadWidth = 100, quadHeight = 100;
+  const float splitCountHor = 1000, splitCountVer = 1000;
+  auto const quadShape = parametric_shapes::createQuad(
+      quadWidth, quadHeight, splitCountHor, splitCountVer);
 
   Node quadNode;
   quadNode.set_geometry(quadShape);

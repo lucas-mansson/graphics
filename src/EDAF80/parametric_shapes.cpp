@@ -45,8 +45,7 @@ parametric_shapes::createQuad(float const width, float const height,
   auto const horizontal_vertices_count = horizontal_edges_count + 1u;
   auto const vertical_vertices_count = vertical_edges_count + 1u;
 
-  auto const nbr_vertices =
-      vertical_vertices_count * (horizontal_vertices_count);
+  auto const nbr_vertices = vertical_vertices_count * horizontal_vertices_count;
 
   auto vertices = std::vector<glm::vec3>(nbr_vertices);
 
@@ -69,35 +68,25 @@ parametric_shapes::createQuad(float const width, float const height,
       glm::vec3(width, 0.0f, 0.0f), glm::vec3(width, 0.0f, height)};
       */
 
-  p("vertices");
-  p(vertices);
-  p("old_vertices");
-  // p(old_vertices);
+  // auto const index_sets =
+  // std::array<glm::uvec3, 2>{glm::uvec3(0u, 1u, 3u), glm::uvec3(0u, 3u, 2u)};
 
-  auto const index_sets =
-      std::array<glm::uvec3, 2>{glm::uvec3(0u, 1u, 3u), glm::uvec3(0u, 3u, 2u)};
-
-  /*
   auto index_sets = std::vector<glm::uvec3>(2u * vertical_edges_count *
                                             horizontal_edges_count);
 
   index = 0u;
   for (unsigned int i = 0u; i < horizontal_edges_count; ++i) {
     for (unsigned int j = 0u; j < vertical_edges_count; ++j) {
-      index_sets[index++] =
-          glm::uvec3((horizontal_vertices_count * (i + 0u) + (j + 0u)),
-                     (horizontal_vertices_count * (i + 0u) + (j + 1u)),
-                     (horizontal_vertices_count * (i + 1u) + (j + 1u)));
+      int a = (vertical_vertices_count * (i + 0u) + (j + 0u));
+      int b = (vertical_vertices_count * (i + 0u) + (j + 1u));
+      int c = (vertical_vertices_count * (i + 1u) + (j + 0u));
+      int d = (vertical_vertices_count * (i + 1u) + (j + 1u));
 
-      index_sets[index++] =
-          glm::uvec3((horizontal_vertices_count * (i + 0u) + (j + 0u)),
-                     (horizontal_vertices_count * (i + 1u) + (j + 1u)),
-                     (horizontal_vertices_count * (i + 1u) + (j + 0u)));
+      index_sets[index++] = glm::uvec3(a, b, d);
+
+      index_sets[index++] = glm::uvec3(a, d, c);
     }
   }
-  */
-  p("index_sets");
-  p(index_sets);
 
   bonobo::mesh_data data;
   /* mesh_data contains:
@@ -189,7 +178,7 @@ parametric_shapes::createQuad(float const width, float const height,
                /*! \todo bind the previously generated Buffer */
                *indicesBufferObjectPtr); // TODO done
 
-  auto const indicesBufferSize = sizeof(index_sets);
+  auto const indicesBufferSize = index_sets.size() * sizeof(index_sets[0]);
   glBufferData(
       GL_ELEMENT_ARRAY_BUFFER,
       /*! \todo how many bytes should the buffer contain? */
