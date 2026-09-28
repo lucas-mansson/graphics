@@ -16,6 +16,7 @@
 #include <cassert>
 #include <cstdint>
 #include <memory>
+#include <utility>
 
 namespace {
 struct {
@@ -517,12 +518,6 @@ bonobo::loadTextureCubeMap(std::string const &posx, std::string const &negx,
   // argument. The function `getTextureData()` uses stb to read in the
   // image files and return a `std::vector<std::uint8_t>` containing all the
   // texels.
-  std::uint32_t width, height;
-  auto data = getTextureData(negx, width, height, false);
-  if (data.empty()) {
-    glDeleteTextures(1, &texture);
-    return 0u;
-  }
   // With all the texels available on the CPU, we now want to push them
   // to the GPU: this is done using `glTexImage2D()` (among others). You
   // might have thought that the target used here would be the same as
@@ -532,16 +527,25 @@ bonobo::loadTextureCubeMap(std::string const &posx, std::string const &negx,
   // as the target the face we want to fill in. In this case, we will
   // start by filling the face sitting on the negative side of the
   // x-axis by specifying GL_TEXTURE_CUBE_MAP_NEGATIVE_X.
-  std::vector<decltype(GL_TEXTURE_CUBE_MAP_NEGATIVE_X)> faces = {
-      GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
-      GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
-      GL_TEXTURE_CUBE_MAP_POSITIVE_Z, GL_TEXTURE_CUBE_MAP_NEGATIVE_Z};
+  std::vector<std::pair<decltype(GL_TEXTURE_CUBE_MAP_NEGATIVE_X), std::string>>
+      faces = {{GL_TEXTURE_CUBE_MAP_POSITIVE_X, posx},
+               {GL_TEXTURE_CUBE_MAP_NEGATIVE_X, negx},
+               {GL_TEXTURE_CUBE_MAP_POSITIVE_Y, posy},
+               {GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, negy},
+               {GL_TEXTURE_CUBE_MAP_POSITIVE_Z, posz},
+               {GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, negz}};
 
   //! \todo repeat now the texture filling for the 5 remaining faces
 
   for (auto face : faces) {
+    std::uint32_t width, height;
+    auto data = getTextureData(face.second, width, height, false);
+    if (data.empty()) {
+      glDeleteTextures(1, &texture);
+      return 0u;
+    }
     glTexImage2D(
-        face,
+        face.first,
         /* mipmap level, you'll see that in EDAN35 */ 0,
         /* how are the components internally stored */ GL_RGBA,
         /* the width of the cube map's face */ static_cast<GLsizei>(width),
