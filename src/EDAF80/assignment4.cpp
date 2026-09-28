@@ -78,6 +78,46 @@ void edaf80::Assignment4::run() {
                  glm::value_ptr(light_position));
   };
 
+  auto skybox_shape = parametric_shapes::createSphere(500.0f, 1000u, 1000u);
+  if (skybox_shape.vao == 0u) {
+    LogError("Failed to retrieve the mesh for the skybox");
+    return;
+  }
+
+  GLuint skybox_shader = 0u;
+  program_manager.CreateAndRegisterProgram(
+      "Skybox",
+      {{ShaderType::vertex, "EDAF80/skybox.vert"},
+       {ShaderType::fragment, "EDAF80/skybox.frag"}},
+      skybox_shader);
+
+  if (skybox_shader == 0u) {
+    LogError("Failed to load skybox shader");
+    return;
+  }
+
+  GLuint cubemap = bonobo::loadTextureCubeMap(
+      config::resources_path("cubemaps/NissiBeach2/posx.jpg"),
+      config::resources_path("cubemaps/NissiBeach2/negx.jpg"),
+      config::resources_path("cubemaps/NissiBeach2/posy.jpg"),
+      config::resources_path("cubemaps/NissiBeach2/negy.jpg"),
+      config::resources_path("cubemaps/NissiBeach2/posz.jpg"),
+      config::resources_path("cubemaps/NissiBeach2/negz.jpg"));
+
+  GLuint normal_map_texture = bonobo::loadTexture2D(
+      config::resources_path("textures/leather_red_02_nor_2k.jpg"));
+
+  Node skybox;
+  skybox.set_geometry(skybox_shape);
+  skybox.set_program(&skybox_shader, set_uniforms);
+  skybox.add_texture("cubemap", cubemap, GL_TEXTURE_CUBE_MAP);
+
+  auto demo_shape = parametric_shapes::createSphere(1.5f, 40u, 40u);
+  if (demo_shape.vao == 0u) {
+    LogError("Failed to retrieve the mesh for the demo sphere");
+    return;
+  }
+
   //
   // TODO: Insert the creation of other shader programs.
   //       (Check how it was done in assignment 3.)
@@ -101,6 +141,8 @@ void edaf80::Assignment4::run() {
   quadNode.set_geometry(quadShape);
   // quadNode.set_program(&fallback_shader, set_uniforms);
   quadNode.set_program(&water_shader, water_set_uniforms);
+  quadNode.add_texture("cubemap", cubemap, GL_TEXTURE_CUBE_MAP);
+  quadNode.add_texture("normal_map_texture", normal_map_texture, GL_TEXTURE_2D);
 
   /*
   demo_sphere.set_material_constants(demo_material);
@@ -194,6 +236,7 @@ void edaf80::Assignment4::run() {
       //
       // TODO: Render all your geometry here.
       //
+      skybox.render(mCamera.GetWorldToClipMatrix());
       quadNode.render(mCamera.GetWorldToClipMatrix());
     }
 
