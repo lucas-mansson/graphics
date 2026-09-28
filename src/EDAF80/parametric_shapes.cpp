@@ -34,20 +34,14 @@ parametric_shapes::createQuad(float const width, float const height,
                               unsigned int const horizontal_split_count,
                               unsigned int const vertical_split_count) {
 
-  auto const bL = glm::vec3(0.0f, 0.0f, 0.0f);
-  auto const bR = glm::vec3(width, 0.0f, 0.0f);
-  auto const tL = glm::vec3(width, 0.0f, height);
-  auto const tR = glm::vec3(0.0f, 0.0f, height);
-
   auto const horizontal_edges_count = horizontal_split_count + 1u;
   auto const vertical_edges_count = vertical_split_count + 1u;
-
   auto const horizontal_vertices_count = horizontal_edges_count + 1u;
   auto const vertical_vertices_count = vertical_edges_count + 1u;
 
   auto const nbr_vertices = vertical_vertices_count * horizontal_vertices_count;
-
   auto vertices = std::vector<glm::vec3>(nbr_vertices);
+  auto texcoords = std::vector<glm::vec3>(nbr_vertices);
 
   float const dx = width / horizontal_edges_count;
   float const dz = height / vertical_edges_count;
@@ -58,22 +52,19 @@ parametric_shapes::createQuad(float const width, float const height,
     for (int j = 0; j < vertical_vertices_count; j++) {
       float z_vertex = j * dz;
       vertices[index] = glm::vec3(x_vertex, 0.0f, z_vertex);
+
+      auto const tex_x = static_cast<float>(i) /
+                         (static_cast<float>(horizontal_vertices_count));
+      auto const tex_y =
+          static_cast<float>(j) / (static_cast<float>(vertical_vertices_count));
+      auto const tex_z = 0.0f;
+      texcoords[index] = glm::vec3(tex_x, tex_y, tex_z);
       index++;
     }
   }
 
-  /*
-  auto const vertices = std::array<glm::vec3, 4>{
-      glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, height),
-      glm::vec3(width, 0.0f, 0.0f), glm::vec3(width, 0.0f, height)};
-      */
-
-  // auto const index_sets =
-  // std::array<glm::uvec3, 2>{glm::uvec3(0u, 1u, 3u), glm::uvec3(0u, 3u, 2u)};
-
   auto index_sets = std::vector<glm::uvec3>(2u * vertical_edges_count *
                                             horizontal_edges_count);
-
   index = 0u;
   for (unsigned int i = 0u; i < horizontal_edges_count; ++i) {
     for (unsigned int j = 0u; j < vertical_edges_count; ++j) {
@@ -89,112 +80,80 @@ parametric_shapes::createQuad(float const width, float const height,
   }
 
   bonobo::mesh_data data;
-  /* mesh_data contains:
-   * vao - Vertex Array Object
-   * bo  - Buffer Object
-   */
 
-  // Create a Vertex Array Object: it will remember where we stored the
-  // data on the GPU, and  which part corresponds to the vertices, which
-  // one for the normals, etc.
-
+  // Vertex Attribute Object
   auto const vertexArrayObjectPtr = &data.vao;
-  // The following function will create new Vertex Arrays, and pass their
-  // name in the given array (second argument). Since we only need one,
-  // pass a pointer to `data.vao`.
-  glGenVertexArrays(1, vertexArrayObjectPtr); // TODO done
+  glGenVertexArrays(1, vertexArrayObjectPtr);
+  assert(data.vao != 0u);
+  glBindVertexArray(*vertexArrayObjectPtr);
 
-  // To be able to store information, the Vertex Array has to be bound
-  // first.
-  glBindVertexArray(*vertexArrayObjectPtr); // TODO done
+  // Vertices
+  auto const vertices_offset = 0u;
+  auto const vertices_size =
+      static_cast<GLsizeiptr>(vertices.size() * sizeof(glm::vec3));
+  const auto vertices_index =
+      static_cast<unsigned int>(bonobo::shader_bindings::vertices);
+  const auto vertices_bufsize = sizeof(vertices);
+  const auto vertices_buffer_location = vertices.data();
+  const auto vertices_buffer_usage = GL_STATIC_DRAW;
 
-  // To store the data, we need to allocate buffers on the GPU. Let's
-  // allocate a first one for the vertices.
+  // Texture coords
+  auto const texcoords_offset = vertices_offset + vertices_size;
+  auto const texcoords_size =
+      static_cast<GLsizeiptr>(texcoords.size() * sizeof(glm::vec3));
 
-  auto const bufferObjectPtr = &data.bo;
-  // The following function's syntax is similar to
-  // `glGenVertexArray()`: it will create multiple OpenGL objects, in
-  // this case buffers, and return their names in an array. Have the
-  // buffer's name stored into `data.bo`.
-  glGenBuffers(1, bufferObjectPtr); // TODO done
+  // Buffer Object
+  auto const bo_size = static_cast<GLsizeiptr>(vertices_size + texcoords_size);
+  auto const buffer_object_ptr = &data.bo;
 
-  // Similar to the Vertex Array, we need to bind it first before storing
-  // anything in it. The data stored in it can be interpreted in
-  // different ways. Here, we will say that it is just a simple 1D-array
-  // and therefore bind the buffer to the corresponding target.
-  glBindBuffer(GL_ARRAY_BUFFER, *bufferObjectPtr);
+  glGenBuffers(1, buffer_object_ptr);
+  assert(data.bo != 0u);
+  glBindBuffer(GL_ARRAY_BUFFER, *buffer_object_ptr);
+  glBufferData(GL_ARRAY_BUFFER, bo_size, nullptr, GL_STATIC_DRAW);
 
-  const auto verticesBufferSize = vertices.size() * sizeof(vertices[0]);
-  glBufferData(
-      GL_ARRAY_BUFFER,
-      /*! \how many bytes should the buffer contain? */
-      verticesBufferSize, // TODO done
-      /* where is the data stored on the CPU? */ vertices.data(),
-      /* inform OpenGL that the data is modified once, but used often */
-      GL_STATIC_DRAW);
+  // Vertices
+  const auto vertices_nbr_components = vertices[0].length();
+  const auto vertices_component_type = GL_FLOAT;
+  const auto vertices_normalize = GL_FALSE;
+  const auto vertices_stride = 0;
+  const auto vertices_offset_first_component =
+      reinterpret_cast<GLvoid const *>(0x0);
 
-  // Vertices have been just stored into a buffer, but we still need to
-  // tell Vertex Array where to find them, and how to interpret the data
-  // within that buffer.
-  //
-  // You will see shaders in more detail in lab 3, but for now they are
-  // just pieces of code running on the GPU and responsible for moving
-  // all the vertices to clip space, and assigning a colour to each pixel
-  // covered by geometry.
-  // Those shaders have inputs, some of them are the data we just stored
-  // in a buffer object. We need to tell the Vertex Array which inputs
-  // are enabled, and this is done by the following line of code, which
-  // enables the input for vertices:
+  glBufferSubData(GL_ARRAY_BUFFER, vertices_offset, vertices_size,
+                  static_cast<GLvoid const *>(vertices.data()));
   glEnableVertexAttribArray(
       static_cast<unsigned int>(bonobo::shader_bindings::vertices));
-
-  // Once an input is enabled, we need to explain where the data comes
-  // from, and how it interpret it. When calling the following function,
-  // the Vertex Array will automatically use the current buffer bound to
-  // GL_ARRAY_BUFFER as its source for the data. How to interpret it is
-  // specified below:
-  const auto vertixNbrOfComponents = 3; // x, y, z?
   glVertexAttribPointer(
-      static_cast<unsigned int>(bonobo::shader_bindings::vertices),
-      /*! \todo how many components do our vertices have? */
-      vertixNbrOfComponents, // TODO done
-      /* what is the type of each component? */ GL_FLOAT,
-      /* should it automatically normalise the values stored */ GL_FALSE,
-      /* once all components of a vertex have been read, how far away (in bytes)
-         is the next vertex? */
-      0,
-      /* how far away (in bytes) from the start of the buffer is the first
-         vertex? */
-      reinterpret_cast<GLvoid const *>(0x0));
+      static_cast<unsigned int>(bonobo::shader_bindings::vertices), 3, GL_FLOAT,
+      GL_FALSE, 0, reinterpret_cast<GLvoid const *>(0x0));
 
-  // Now, let's allocate a second one for the indices.
-  auto const indicesBufferObjectPtr = &data.ibo;
-  // Have the buffer's name stored into `data.ibo`.
-  glGenBuffers(1, indicesBufferObjectPtr); // TODO done
+  // Texture coordinates
+  glBufferSubData(GL_ARRAY_BUFFER, texcoords_offset, texcoords_size,
+                  static_cast<GLvoid const *>(texcoords.data()));
+  glEnableVertexAttribArray(
+      static_cast<unsigned int>(bonobo::shader_bindings::texcoords));
+  glVertexAttribPointer(
+      static_cast<unsigned int>(bonobo::shader_bindings::texcoords), 3,
+      GL_FLOAT, GL_FALSE, 0,
+      reinterpret_cast<GLvoid const *>(texcoords_offset));
 
-  // We still want a 1D-array, but this time it should be a 1D-array of
-  // elements, aka. indices!
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,
-               /*! \todo bind the previously generated Buffer */
-               *indicesBufferObjectPtr); // TODO done
+  // Indices
+  auto const indices_buf_obj_ptr = &data.ibo;
+  auto const indices_bufsize = index_sets.size() * sizeof(glm::uvec3);
 
-  auto const indicesBufferSize = index_sets.size() * sizeof(index_sets[0]);
-  glBufferData(
-      GL_ELEMENT_ARRAY_BUFFER,
-      /*! \todo how many bytes should the buffer contain? */
-      indicesBufferSize, // TODO done
-      /* where is the data stored on the CPU? */ index_sets.data(),
-      /* inform OpenGL that the data is modified once, but used often */
-      GL_STATIC_DRAW);
+  glGenBuffers(1, indices_buf_obj_ptr);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, *indices_buf_obj_ptr);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_bufsize, index_sets.data(),
+               GL_STATIC_DRAW);
 
-  const auto nbrIndicies = index_sets.size() * index_sets[0].length();
-  data.indices_nb = nbrIndicies;
+  const auto nbr_indicies = index_sets.size() * index_sets[0].length();
+
+  data.indices_nb = nbr_indicies;
 
   // All the data has been recorded, we can unbind them.
   glBindVertexArray(0u);
-  glBindBuffer(GL_ARRAY_BUFFER, 0u);
+  // glBindBuffer(GL_ARRAY_BUFFER, 0u);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0u);
-
   return data;
 }
 
