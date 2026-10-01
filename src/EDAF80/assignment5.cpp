@@ -4,12 +4,15 @@
 #include "config.hpp"
 #include "core/Bonobo.h"
 #include "core/FPSCamera.h"
+#include "core/InputHandler.h"
 #include "core/ShaderProgramManager.hpp"
 #include "core/helpers.hpp"
 #include "core/node.hpp"
 
+#include <GLFW/glfw3.h>
 #include <array>
 #include <cstdlib>
+#include <glm/common.hpp>
 #include <glm/ext/quaternion_geometric.hpp>
 #include <glm/ext/scalar_constants.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -24,21 +27,27 @@ struct Sphere {
   float radius;
 };
 
-struct Plane {
+struct Rectangle {
   Node node;
   float height;
   float width;
   glm::vec3 normal;
 };
 
-bool checkSpherePlaneCollision(Sphere sphere, Plane plane) {
+bool checkRectanglePlaneCollision(Sphere sphere, Rectangle rec) {
   auto const sphereCenter = sphere.node.get_transform().GetTranslation();
-  auto const planePt = plane.node.get_transform().GetTranslation();
-  glm::vec3 n = glm::normalize(plane.normal);
+  auto const recPt = rec.node.get_transform().GetTranslation();
 
-  float distance = glm::dot(n, sphereCenter - planePt);
+  glm::vec3 closestPoint;
 
-  return std::abs(distance) <= sphere.radius;
+  closestPoint.x = glm::clamp(sphereCenter.x, recPt.x, recPt.x + rec.width);
+  closestPoint.y = glm::clamp(sphereCenter.y, recPt.y, recPt.y + rec.height);
+  closestPoint.z = recPt.z;
+
+  float distanceSquared =
+      glm::dot(sphereCenter - closestPoint, sphereCenter - closestPoint);
+
+  return distanceSquared <= sphere.radius * sphere.radius;
 }
 
 edaf80::Assignment5::Assignment5(WindowManager &windowManager)
@@ -107,7 +116,7 @@ void edaf80::Assignment5::run() {
   const float paddleY = -paddleSideSize / 2.0f;
   const float paddleDistanceFromOrigo = 12.0f;
 
-  Plane paddle1;
+  Rectangle paddle1;
   Node paddle1Node;
   glm::vec3 paddle1Pos = glm::vec3(paddleX, paddleY, paddleDistanceFromOrigo);
   paddle1Node.set_geometry(paddleShape);
@@ -119,7 +128,7 @@ void edaf80::Assignment5::run() {
   paddle1.width = paddleSideSize;
   nodes.push_back(&paddle1.node);
 
-  Plane paddle2;
+  Rectangle paddle2;
   Node paddle2Node;
   glm::vec3 paddle2Pos = glm::vec3(paddleX, paddleY, -paddleDistanceFromOrigo);
   paddle2Node.set_geometry(paddleShape);
@@ -183,6 +192,8 @@ void edaf80::Assignment5::run() {
   float basis_thickness_scale = 1.0f;
   float basis_length_scale = 1.0f;
 
+  float const strafe_speed = 0.1f;
+
   while (!glfwWindowShouldClose(window)) {
     auto const nowTime = std::chrono::high_resolution_clock::now();
     auto const deltaTimeUs =
@@ -192,8 +203,8 @@ void edaf80::Assignment5::run() {
 
     ball.node.get_transform().Translate(ballDirection / 10.0f);
 
-    bool collision = checkSpherePlaneCollision(ball, paddle1) ||
-                     checkSpherePlaneCollision(ball, paddle2);
+    bool collision = checkRectanglePlaneCollision(ball, paddle1) ||
+                     checkRectanglePlaneCollision(ball, paddle2);
     if (collision) {
       ballDirection = -ballDirection;
     }
@@ -207,26 +218,17 @@ void edaf80::Assignment5::run() {
     inputHandler.Advance();
     mCamera.Update(deltaTimeUs, inputHandler);
 
-    if (inputHandler.GetKeycodeState(GLFW_KEY_R) & JUST_PRESSED) {
-      shader_reload_failed = !program_manager.ReloadAllPrograms();
-      if (shader_reload_failed)
-        tinyfd_notifyPopup("Shader Program Reload Error",
-                           "An error occurred while reloading shader programs; "
-                           "see the logs for details.\n"
-                           "Rendering is suspended until the issue is solved. "
-                           "Once fixed, just reload the shaders again.",
-                           "error");
-    }
-    if (inputHandler.GetKeycodeState(GLFW_KEY_F3) & JUST_RELEASED)
-      show_logs = !show_logs;
-    if (inputHandler.GetKeycodeState(GLFW_KEY_F2) & JUST_RELEASED)
-      show_gui = !show_gui;
-    if (inputHandler.GetKeycodeState(GLFW_KEY_F11) & JUST_RELEASED)
-      mWindowManager.ToggleFullscreenStatusForWindow(window);
-
     int framebuffer_width, framebuffer_height;
     glfwGetFramebufferSize(window, &framebuffer_width, &framebuffer_height);
     glViewport(0, 0, framebuffer_width, framebuffer_height);
+
+    if ((inputHandler.GetKeycodeState(GLFW_KEY_RIGHT) & PRESSED)) {
+      paddle1.node.get_transform().Translate(glm::vec3(strafe_speed, 0, 0));
+    }
+
+    if ((inputHandler.GetKeycodeState(GLFW_KEY_LEFT) & PRESSED)) {
+      paddle1.node.get_transform().Translate(glm::vec3(-strafe_speed, 0, 0));
+    }
 
     // TODO: If you need to handle inputs, you can do it here
 
