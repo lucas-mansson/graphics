@@ -44,7 +44,8 @@ edaf80::Assignment5::~Assignment5() { bonobo::deinit(); }
 
 void edaf80::Assignment5::run() {
   // Set up the camera
-  mCamera.mWorld.SetTranslate(glm::vec3(0.0f, 0.0f, 6.0f));
+  mCamera.mWorld.SetTranslate(glm::vec3(0.0f, 30.0f, 25.0f));
+  mCamera.mWorld.LookAt(glm::vec3(0, 0, 0));
   mCamera.mMouseSensitivity = glm::vec2(0.003f);
   mCamera.mMovementSpeed = glm::vec3(3.0f); // 3 m/s => 10.8 km/h
 
@@ -89,19 +90,22 @@ void edaf80::Assignment5::run() {
   const float paddleSideSize = 5.0f;
   bonobo::mesh_data paddleShape =
       parametric_shapes::createQuadXY(paddleSideSize, paddleSideSize);
+  const float paddleX = -paddleSideSize / 2.0f;
+  const float paddleY = -paddleSideSize / 2.0f;
+  const float paddleDistanceFromOrigo = 12.0f;
 
   Node paddle1;
+  glm::vec3 paddle1Pos = glm::vec3(paddleX, paddleY, paddleDistanceFromOrigo);
   paddle1.set_geometry(paddleShape);
   paddle1.set_program(&texcoord_shader);
-  paddle1.get_transform().SetTranslate(
-      glm::vec3(-paddleSideSize / 2.0f, -paddleSideSize / 2.0f, 8));
+  paddle1.get_transform().SetTranslate(paddle1Pos);
   nodes.push_back(&paddle1);
 
   Node paddle2;
+  glm::vec3 paddle2Pos = glm::vec3(paddleX, paddleY, -paddleDistanceFromOrigo);
   paddle2.set_geometry(paddleShape);
   paddle2.set_program(&texcoord_shader);
-  paddle2.get_transform().SetTranslate(
-      glm::vec3(-paddleSideSize / 2.0f, -paddleSideSize / 2.0f, -8));
+  paddle2.get_transform().SetTranslate(paddle2Pos);
   nodes.push_back(&paddle2);
 
   // 4 sides
