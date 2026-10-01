@@ -34,7 +34,6 @@ void main()
     vec3 light = normalize(fs_in.light);
     vec3 normal = normalize(fs_in.normal);
     vec3 view = normalize(fs_in.view);
-    vec3 reflect_v = normalize(reflect(-light, normal)); 
 
     if (use_normal_mapping == 1) {
         mat3 TBN = mat3(fs_in.tangent, fs_in.binormal, fs_in.normal);
@@ -43,9 +42,10 @@ void main()
         // map [0,1] -> [-1, 1]
         vec3 n = normalize(texture_rgb * 2.0 - 1.0);
 
-        vec3 normal = (normal_model_to_world * vec4(TBN * n, 0)).xyz;
+        normal = (normal_model_to_world * vec4(TBN * n, 0)).xyz;
     }
 
+    vec3 reflect_v = normalize(reflect(-light, normal)); 
     vec3 diffuse = max(dot(normal, light), 0.0) * texture(diffuse_texture, fs_in.texture_coordinates).xyz * diffuse_colour ;
     vec3 specular = pow(max(dot(reflect_v, view), 0.0), shininess_value) * texture(specular_map_texture, fs_in.texture_coordinates).xyz * specular_colour ;
 

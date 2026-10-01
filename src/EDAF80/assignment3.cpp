@@ -97,7 +97,7 @@ void edaf80::Assignment3::run() {
                  glm::value_ptr(light_position));
   };
 
-  bool use_normal_mapping = false;
+  bool use_normal_mapping = true;
   auto camera_position = mCamera.mWorld.GetTranslation();
   auto const phong_set_uniforms = [&use_normal_mapping, &light_position,
                                    &camera_position](GLuint program) {
@@ -259,7 +259,10 @@ void edaf80::Assignment3::run() {
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     bonobo::changePolygonMode(polygon_mode);
 
+    skybox.get_transform().SetTranslate(camera_position);
     skybox.render(mCamera.GetWorldToClipMatrix());
+
+    glClear(GL_DEPTH_BUFFER_BIT);
     demo_sphere.render(mCamera.GetWorldToClipMatrix());
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
