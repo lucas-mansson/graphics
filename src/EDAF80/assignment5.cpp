@@ -192,6 +192,23 @@ void edaf80::Assignment5::run() {
     nodes.push_back(&sideBorders[i].node);
   }
 
+  std::array<glm::vec3, 2> backBorderPositions = {
+      glm::vec3(-borderWidth / 2.0f, borderY, borderWidth / 2.0f),
+      glm::vec3(-borderWidth / 2.0f, borderY, -borderWidth / 2.0f),
+  };
+  std::array<Rectangle, 2> backBorders;
+  for (int i = 0; i < backBorders.size(); i++) {
+    Rectangle &border = backBorders[i];
+    border.node.set_geometry(borderShape);
+    border.node.set_program(&texcoord_shader);
+    border.node.get_transform().SetTranslate(backBorderPositions[i]);
+    border.normal = glm::vec3(0, 0, 1);
+    border.height = borderHeight;
+    border.width = borderWidth;
+    nodes.push_back(&border.node);
+  }
+
+  /*
   Rectangle backBorder1;
   Node backBorder1Node;
   auto const backborder1Position =
@@ -217,6 +234,7 @@ void edaf80::Assignment5::run() {
   backBorder2.height = borderHeight;
   backBorder2.width = borderWidth;
   nodes.push_back(&backBorder2.node);
+  */
 
   Sphere ball;
   const float ballRadius = 1.0f;
@@ -229,7 +247,7 @@ void edaf80::Assignment5::run() {
   ball.radius = ballRadius;
   nodes.push_back(&ball.node);
 
-  auto ballDirection = glm::vec3(1, 0, 0);
+  auto ballDirection = glm::vec3(0, 0, -1);
 
   glClearDepthf(1.0f);
   glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -248,29 +266,23 @@ void edaf80::Assignment5::run() {
 
     ball.node.get_transform().Translate(ballDirection / 10.0f);
 
-    CollisionResult collisionBack1 =
-        checkXYRectangleSphereCollision(ball, backBorder1);
-    if (collisionBack1.collision) {
-      return;
+    for (auto border : backBorders) {
+      CollisionResult collision = checkXYRectangleSphereCollision(ball, border);
+      if (collision.collision) {
+        return;
+      }
     }
-    CollisionResult collisionBack2 =
-        checkXYRectangleSphereCollision(ball, backBorder2);
-    if (collisionBack2.collision) {
-      return;
-    }
-
-    for (int i = 0; i < paddles.size(); i++) {
+    for (auto paddle : paddles) {
       CollisionResult collisionPaddle =
-          checkXYRectangleSphereCollision(ball, paddles.at(i));
+          checkXYRectangleSphereCollision(ball, paddle);
       if (collisionPaddle.collision) {
         ballDirection = glm::normalize(
             glm::reflect(ballDirection, collisionPaddle.collisionNormal));
       }
     }
-
-    for (int i = 0; i < sideBorders.size(); i++) {
+    for (auto border : sideBorders) {
       CollisionResult collisionSide =
-          checkYZRectangleSphereCollision(ball, sideBorders.at(i));
+          checkYZRectangleSphereCollision(ball, border);
       if (collisionSide.collision) {
         ballDirection = glm::normalize(
             glm::reflect(ballDirection, collisionSide.collisionNormal));
