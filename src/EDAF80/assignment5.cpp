@@ -16,6 +16,7 @@
 #include <glm/ext/quaternion_geometric.hpp>
 #include <glm/ext/scalar_constants.hpp>
 #include <glm/ext/vector_float3.hpp>
+#include <glm/geometric.hpp>
 #include <imgui.h>
 #include <tinyfiledialogs.h>
 
@@ -34,20 +35,50 @@ struct Rectangle {
   glm::vec3 normal;
 };
 
-bool checkRectanglePlaneCollision(Sphere sphere, Rectangle rec) {
+struct CollisionResult {
+  bool collision;
+  glm::vec3 collisionNormal;
+};
+
+// TODO: Fix this with transformations instead of two separate functions
+CollisionResult checkXYRectangleSphereCollision(Sphere sphere, Rectangle rec) {
   auto const sphereCenter = sphere.node.get_transform().GetTranslation();
   auto const recPt = rec.node.get_transform().GetTranslation();
 
   glm::vec3 closestPoint;
-
   closestPoint.x = glm::clamp(sphereCenter.x, recPt.x, recPt.x + rec.width);
   closestPoint.y = glm::clamp(sphereCenter.y, recPt.y, recPt.y + rec.height);
   closestPoint.z = recPt.z;
 
-  float distanceSquared =
+  auto const delta = sphereCenter - closestPoint;
+  float distSq =
       glm::dot(sphereCenter - closestPoint, sphereCenter - closestPoint);
 
-  return distanceSquared <= sphere.radius * sphere.radius;
+  CollisionResult result;
+  result.collision = distSq <= sphere.radius * sphere.radius;
+  result.collisionNormal = glm::normalize(delta);
+
+  return result;
+}
+
+CollisionResult checkYZRectangleSphereCollision(Sphere sphere, Rectangle rec) {
+  auto const sphereCenter = sphere.node.get_transform().GetTranslation();
+  auto const recPt = rec.node.get_transform().GetTranslation();
+
+  glm::vec3 closestPoint;
+  closestPoint.x = recPt.x;
+  closestPoint.y = glm::clamp(sphereCenter.y, recPt.y, recPt.y + rec.height);
+  closestPoint.z = glm::clamp(sphereCenter.z, recPt.z - rec.width, recPt.z);
+
+  auto const delta = sphereCenter - closestPoint;
+  float distSq =
+      glm::dot(sphereCenter - closestPoint, sphereCenter - closestPoint);
+
+  CollisionResult result;
+  result.collision = distSq <= sphere.radius * sphere.radius;
+  result.collisionNormal = glm::normalize(delta);
+
+  return result;
 }
 
 edaf80::Assignment5::Assignment5(WindowManager &windowManager)
@@ -148,23 +179,61 @@ void edaf80::Assignment5::run() {
   bonobo::mesh_data sideshape =
       parametric_shapes::createQuadXY(borderLength, borderHeight);
 
-  std::array<glm::vec3, 4> borderPositions = {
-      glm::vec3(-borderLength / 2.0f, borderY, borderLength / 2.0f),
-      glm::vec3(-borderLength / 2.0f, borderY, -borderLength / 2.0f),
-      glm::vec3(-borderLength / 2.0f, borderY, borderLength / 2.0f),
-      glm::vec3(borderLength / 2.0f, borderY, borderLength / 2.0f)};
+  Rectangle backBorder1;
+  Node backBorder1Node;
+  auto const backborder1Position =
+      glm::vec3(-borderLength / 2.0f, borderY, borderLength / 2.0f);
+  backBorder1Node.set_geometry(sideshape);
+  backBorder1Node.set_program(&texcoord_shader);
+  backBorder1Node.get_transform().SetTranslate(backborder1Position);
+  backBorder1.node = backBorder1Node;
+  backBorder1.normal = glm::vec3(0, 0, 1);
+  backBorder1.height = borderHeight;
+  backBorder1.width = borderLength;
+  nodes.push_back(&backBorder1.node);
 
-  std::array<Node, 4> borders;
-  for (std::size_t i = 0; i < borders.size(); ++i) {
-    Node &border = borders[i];
-    border.set_geometry(sideshape);
-    border.set_program(&texcoord_shader);
-    if (i >= 2) {
-      border.get_transform().RotateY(glm::half_pi<float>());
-    }
-    border.get_transform().SetTranslate(borderPositions[i]);
-    nodes.push_back(&border);
-  }
+  Rectangle backBorder2;
+  Node backBorder2Node;
+  auto const backborder2Position =
+      glm::vec3(-borderLength / 2.0f, borderY, -borderLength / 2.0f);
+  backBorder2Node.set_geometry(sideshape);
+  backBorder2Node.set_program(&texcoord_shader);
+  backBorder2Node.get_transform().SetTranslate(backborder2Position);
+  backBorder2.node = backBorder2Node;
+  backBorder2.normal = glm::vec3(0, 0, 1);
+  backBorder2.height = borderHeight;
+  backBorder2.width = borderLength;
+  nodes.push_back(&backBorder2.node);
+
+  Rectangle sideBorder1;
+  Node sideBorder1Node;
+  auto const sideborder1Pos =
+      glm::vec3(-borderLength / 2.0f, borderY, borderLength / 2.0f);
+  sideBorder1Node.set_geometry(sideshape);
+  sideBorder1Node.set_program(&texcoord_shader);
+  sideBorder1Node.get_transform().SetTranslate(sideborder1Pos);
+  sideBorder1Node.get_transform().RotateY(glm::half_pi<float>());
+
+  sideBorder1.node = sideBorder1Node;
+  sideBorder1.normal = glm::vec3(1, 0, 0);
+  sideBorder1.height = borderHeight;
+  sideBorder1.width = borderLength;
+  nodes.push_back(&sideBorder1.node);
+
+  Rectangle sideBorder2;
+  Node sideBorder2Node;
+  auto const sideborder2Pos =
+      glm::vec3(borderLength / 2.0f, borderY, borderLength / 2.0f);
+  sideBorder2Node.set_geometry(sideshape);
+  sideBorder2Node.set_program(&texcoord_shader);
+  sideBorder2Node.get_transform().SetTranslate(sideborder2Pos);
+  sideBorder2Node.get_transform().RotateY(glm::half_pi<float>());
+
+  sideBorder2.node = sideBorder2Node;
+  sideBorder2.normal = glm::vec3(1, 0, 0);
+  sideBorder2.height = borderHeight;
+  sideBorder2.width = borderLength;
+  nodes.push_back(&sideBorder2.node);
 
   Sphere ball;
   const float ballRadius = 1.0f;
@@ -177,20 +246,13 @@ void edaf80::Assignment5::run() {
   ball.radius = ballRadius;
   nodes.push_back(&ball.node);
 
-  auto ballDirection = glm::vec3(0, 0, 1);
+  auto ballDirection = glm::vec3(1, 0, 0);
 
   glClearDepthf(1.0f);
   glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
   glEnable(GL_DEPTH_TEST);
 
   auto lastTime = std::chrono::high_resolution_clock::now();
-
-  bool show_logs = true;
-  bool show_gui = true;
-  bool shader_reload_failed = false;
-  bool show_basis = false;
-  float basis_thickness_scale = 1.0f;
-  float basis_length_scale = 1.0f;
 
   float const strafe_speed = 0.1f;
 
@@ -203,13 +265,44 @@ void edaf80::Assignment5::run() {
 
     ball.node.get_transform().Translate(ballDirection / 10.0f);
 
-    bool collision = checkRectanglePlaneCollision(ball, paddle1) ||
-                     checkRectanglePlaneCollision(ball, paddle2);
-    if (collision) {
-      ballDirection = -ballDirection;
+    CollisionResult collisionBack1 =
+        checkXYRectangleSphereCollision(ball, backBorder1);
+    if (collisionBack1.collision) {
+      return;
     }
-    // check collision
-    // If collision, update ballDirection vector
+    CollisionResult collisionBack2 =
+        checkXYRectangleSphereCollision(ball, backBorder2);
+    if (collisionBack2.collision) {
+      return;
+    }
+
+    CollisionResult collisionPaddle1 =
+        checkXYRectangleSphereCollision(ball, paddle1);
+    if (collisionPaddle1.collision) {
+      ballDirection = glm::normalize(
+          glm::reflect(ballDirection, collisionPaddle1.collisionNormal));
+    }
+
+    CollisionResult collisionPaddle2 =
+        checkXYRectangleSphereCollision(ball, paddle2);
+    if (collisionPaddle2.collision) {
+      ballDirection = glm::normalize(
+          glm::reflect(ballDirection, collisionPaddle2.collisionNormal));
+    }
+
+    CollisionResult collisionSide1 =
+        checkYZRectangleSphereCollision(ball, sideBorder1);
+    if (collisionSide1.collision) {
+      ballDirection = glm::normalize(
+          glm::reflect(ballDirection, collisionSide1.collisionNormal));
+    }
+
+    CollisionResult collisionSide2 =
+        checkYZRectangleSphereCollision(ball, sideBorder2);
+    if (collisionSide2.collision) {
+      ballDirection = glm::normalize(
+          glm::reflect(ballDirection, collisionSide2.collisionNormal));
+    }
 
     auto &io = ImGui::GetIO();
     inputHandler.SetUICapture(io.WantCaptureMouse, io.WantCaptureKeyboard);
@@ -225,9 +318,14 @@ void edaf80::Assignment5::run() {
     if ((inputHandler.GetKeycodeState(GLFW_KEY_RIGHT) & PRESSED)) {
       paddle1.node.get_transform().Translate(glm::vec3(strafe_speed, 0, 0));
     }
-
     if ((inputHandler.GetKeycodeState(GLFW_KEY_LEFT) & PRESSED)) {
       paddle1.node.get_transform().Translate(glm::vec3(-strafe_speed, 0, 0));
+    }
+    if ((inputHandler.GetKeycodeState(GLFW_KEY_J) & PRESSED)) {
+      paddle2.node.get_transform().Translate(glm::vec3(-strafe_speed, 0, 0));
+    }
+    if ((inputHandler.GetKeycodeState(GLFW_KEY_L) & PRESSED)) {
+      paddle2.node.get_transform().Translate(glm::vec3(strafe_speed, 0, 0));
     }
 
     // TODO: If you need to handle inputs, you can do it here
@@ -236,34 +334,16 @@ void edaf80::Assignment5::run() {
 
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
-    if (!shader_reload_failed) {
-      // TODO: Render all your geometry here.
-      for (auto node : nodes) {
-        node->render(mCamera.GetWorldToClipMatrix());
-      }
+    // TODO: Render all your geometry here.
+    for (auto node : nodes) {
+      node->render(mCamera.GetWorldToClipMatrix());
     }
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     // TODO: If you want a custom ImGUI window, you can set it up here
-    bool const opened =
-        ImGui::Begin("Scene Controls", nullptr, ImGuiWindowFlags_None);
-    if (opened) {
-      ImGui::Checkbox("Show basis", &show_basis);
-      ImGui::SliderFloat("Basis thickness scale", &basis_thickness_scale, 0.0f,
-                         100.0f);
-      ImGui::SliderFloat("Basis length scale", &basis_length_scale, 0.0f,
-                         100.0f);
-    }
-    ImGui::End();
 
-    if (show_basis)
-      bonobo::renderBasis(basis_thickness_scale, basis_length_scale,
-                          mCamera.GetWorldToClipMatrix());
-    if (show_logs)
-      Log::View::Render();
-    mWindowManager.RenderImGuiFrame(show_gui);
-
+    // mWindowManager.RenderImGuiFrame(show_gui);
     glfwSwapBuffers(window);
   }
 }
