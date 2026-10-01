@@ -168,7 +168,7 @@ void edaf80::Assignment5::run() {
   ball.radius = ballRadius;
   nodes.push_back(&ball.node);
 
-  auto const ballDirection = glm::vec3(0, 0, 1);
+  auto ballDirection = glm::vec3(0, 0, 1);
 
   glClearDepthf(1.0f);
   glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -192,8 +192,11 @@ void edaf80::Assignment5::run() {
 
     ball.node.get_transform().Translate(ballDirection / 10.0f);
 
-    bool collision = checkSpherePlaneCollision(ball, paddle1);
-    std::cout << collision << "\n";
+    bool collision = checkSpherePlaneCollision(ball, paddle1) ||
+                     checkSpherePlaneCollision(ball, paddle2);
+    if (collision) {
+      ballDirection = -ballDirection;
+    }
     // check collision
     // If collision, update ballDirection vector
 
