@@ -8,6 +8,9 @@
 #include "core/helpers.hpp"
 #include "core/node.hpp"
 
+#include <array>
+#include <cstdlib>
+#include <glm/ext/quaternion_geometric.hpp>
 #include <glm/ext/scalar_constants.hpp>
 #include <glm/ext/vector_float3.hpp>
 #include <imgui.h>
@@ -15,6 +18,28 @@
 
 #include <clocale>
 #include <stdexcept>
+
+struct Sphere {
+  Node node;
+  float radius;
+};
+
+struct Plane {
+  Node node;
+  float height;
+  float width;
+  glm::vec3 normal;
+};
+
+bool checkSpherePlaneCollision(Sphere sphere, Plane plane) {
+  auto const sphereCenter = sphere.node.get_transform().GetTranslation();
+  auto const planePt = plane.node.get_transform().GetTranslation();
+  glm::vec3 n = glm::normalize(plane.normal);
+
+  float distance = glm::dot(n, sphereCenter - planePt);
+
+  return std::abs(distance) <= sphere.radius;
+}
 
 edaf80::Assignment5::Assignment5(WindowManager &windowManager)
     : mCamera(0.5f * glm::half_pi<float>(),
@@ -75,18 +100,6 @@ void edaf80::Assignment5::run() {
   // TODO: Load your geometry
   std::vector<Node *> nodes;
 
-  bonobo::mesh_data ballShape =
-      parametric_shapes::createSphere(1.0f, 1000u, 1000u);
-  if (ballShape.vao == 0u) {
-    LogError("Failed to retrieve the mesh for the demo sphere");
-    return;
-  }
-
-  Node ball;
-  ball.set_geometry(ballShape);
-  ball.set_program(&texcoord_shader);
-  nodes.push_back(&ball);
-
   const float paddleSideSize = 5.0f;
   bonobo::mesh_data paddleShape =
       parametric_shapes::createQuadXY(paddleSideSize, paddleSideSize);
@@ -94,19 +107,29 @@ void edaf80::Assignment5::run() {
   const float paddleY = -paddleSideSize / 2.0f;
   const float paddleDistanceFromOrigo = 12.0f;
 
-  Node paddle1;
+  Plane paddle1;
+  Node paddle1Node;
   glm::vec3 paddle1Pos = glm::vec3(paddleX, paddleY, paddleDistanceFromOrigo);
-  paddle1.set_geometry(paddleShape);
-  paddle1.set_program(&texcoord_shader);
-  paddle1.get_transform().SetTranslate(paddle1Pos);
-  nodes.push_back(&paddle1);
+  paddle1Node.set_geometry(paddleShape);
+  paddle1Node.set_program(&texcoord_shader);
+  paddle1Node.get_transform().SetTranslate(paddle1Pos);
+  paddle1.node = paddle1Node;
+  paddle1.normal = glm::vec3(0.0f, 0.0f, 1.0f);
+  paddle1.height = paddleSideSize;
+  paddle1.width = paddleSideSize;
+  nodes.push_back(&paddle1.node);
 
-  Node paddle2;
+  Plane paddle2;
+  Node paddle2Node;
   glm::vec3 paddle2Pos = glm::vec3(paddleX, paddleY, -paddleDistanceFromOrigo);
-  paddle2.set_geometry(paddleShape);
-  paddle2.set_program(&texcoord_shader);
-  paddle2.get_transform().SetTranslate(paddle2Pos);
-  nodes.push_back(&paddle2);
+  paddle2Node.set_geometry(paddleShape);
+  paddle2Node.set_program(&texcoord_shader);
+  paddle2Node.get_transform().SetTranslate(paddle2Pos);
+  paddle2.node = paddle2Node;
+  paddle2.normal = glm::vec3(0.0f, 0.0f, 1.0f);
+  paddle2.height = paddleSideSize;
+  paddle2.width = paddleSideSize;
+  nodes.push_back(&paddle2.node);
 
   // 4 sides
   const int nbrBorders = 4;
@@ -134,6 +157,19 @@ void edaf80::Assignment5::run() {
     nodes.push_back(&border);
   }
 
+  Sphere ball;
+  const float ballRadius = 1.0f;
+  bonobo::mesh_data ballShape =
+      parametric_shapes::createSphere(ballRadius, 1000u, 1000u);
+  Node ballNode;
+  ballNode.set_geometry(ballShape);
+  ballNode.set_program(&texcoord_shader);
+  ball.node = ballNode;
+  ball.radius = ballRadius;
+  nodes.push_back(&ball.node);
+
+  auto const ballDirection = glm::vec3(0, 0, 1);
+
   glClearDepthf(1.0f);
   glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
   glEnable(GL_DEPTH_TEST);
@@ -153,6 +189,13 @@ void edaf80::Assignment5::run() {
         std::chrono::duration_cast<std::chrono::microseconds>(nowTime -
                                                               lastTime);
     lastTime = nowTime;
+
+    ball.node.get_transform().Translate(ballDirection / 10.0f);
+
+    bool collision = checkSpherePlaneCollision(ball, paddle1);
+    std::cout << collision << "\n";
+    // check collision
+    // If collision, update ballDirection vector
 
     auto &io = ImGui::GetIO();
     inputHandler.SetUICapture(io.WantCaptureMouse, io.WantCaptureKeyboard);
@@ -178,13 +221,6 @@ void edaf80::Assignment5::run() {
     if (inputHandler.GetKeycodeState(GLFW_KEY_F11) & JUST_RELEASED)
       mWindowManager.ToggleFullscreenStatusForWindow(window);
 
-    // Retrieve the actual framebuffer size: for HiDPI monitors,
-    // you might end up with a framebuffer larger than what you
-    // actually asked for. For example, if you ask for a 1920x1080
-    // framebuffer, you might get a 3840x2160 one instead.
-    // Also it might change as the user drags the window between
-    // monitors with different DPIs, or if the fullscreen status is
-    // being toggled.
     int framebuffer_width, framebuffer_height;
     glfwGetFramebufferSize(window, &framebuffer_width, &framebuffer_height);
     glViewport(0, 0, framebuffer_width, framebuffer_height);
