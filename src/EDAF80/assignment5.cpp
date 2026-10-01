@@ -165,17 +165,17 @@ void edaf80::Assignment5::run() {
     nodes.push_back(&paddles[i].node);
   }
 
-  // 4 sides
-  const int nbrBorders = 4;
   const float borderWidth = 30.0f;
   const float borderHeight = 10.0f;
+  const float borderX = borderWidth / 2.0f;
   const float borderY = -borderHeight / 2.0f;
+  const float borderZ = borderWidth / 2.0f;
   bonobo::mesh_data borderShape =
       parametric_shapes::createQuadXY(borderWidth, borderHeight);
 
   std::array<glm::vec3, 2> sideBorderPositions = {
-      glm::vec3(-borderWidth / 2.0f, borderY, borderWidth / 2.0f),
-      glm::vec3(borderWidth / 2.0f, borderY, borderWidth / 2.0f),
+      glm::vec3(borderX, borderY, borderZ),
+      glm::vec3(-borderX, borderY, borderZ),
   };
   std::array<Rectangle, 2> sideBorders;
   for (int i = 0; i < 2; i++) {
@@ -207,34 +207,6 @@ void edaf80::Assignment5::run() {
     border.width = borderWidth;
     nodes.push_back(&border.node);
   }
-
-  /*
-  Rectangle backBorder1;
-  Node backBorder1Node;
-  auto const backborder1Position =
-      glm::vec3(-borderWidth / 2.0f, borderY, borderWidth / 2.0f);
-  backBorder1Node.set_geometry(borderShape);
-  backBorder1Node.set_program(&texcoord_shader);
-  backBorder1Node.get_transform().SetTranslate(backborder1Position);
-  backBorder1.node = backBorder1Node;
-  backBorder1.normal = glm::vec3(0, 0, 1);
-  backBorder1.height = borderHeight;
-  backBorder1.width = borderWidth;
-  nodes.push_back(&backBorder1.node);
-
-  Rectangle backBorder2;
-  Node backBorder2Node;
-  auto const backborder2Position =
-      glm::vec3(-borderWidth / 2.0f, borderY, -borderWidth / 2.0f);
-  backBorder2Node.set_geometry(borderShape);
-  backBorder2Node.set_program(&texcoord_shader);
-  backBorder2Node.get_transform().SetTranslate(backborder2Position);
-  backBorder2.node = backBorder2Node;
-  backBorder2.normal = glm::vec3(0, 0, 1);
-  backBorder2.height = borderHeight;
-  backBorder2.width = borderWidth;
-  nodes.push_back(&backBorder2.node);
-  */
 
   Sphere ball;
   const float ballRadius = 1.0f;
