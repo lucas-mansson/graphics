@@ -20,6 +20,7 @@
 #include <glm/ext/vector_float4.hpp>
 #include <glm/geometric.hpp>
 #include <imgui.h>
+#include <string>
 #include <tinyfiledialogs.h>
 
 #include <clocale>
@@ -283,64 +284,64 @@ void edaf80::Assignment5::run() {
           glm::vec3(strafeSpeed, 0, 0));
     }
 
-    if ((inputHandler.GetKeycodeState(GLFW_KEY_ENTER) & JUST_RELEASED)) {
-      currentGameState = STARTED;
-    }
-
     mWindowManager.NewImGuiFrame();
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
     // TODO: Render all your geometry here.
-    if (currentGameState == STARTED) {
-      ball.node.get_transform().Translate(ballDirection * ballSpeed);
-    }
-    if (currentGameState == ENDED) {
+    switch (currentGameState) {
+    case ENDED:
       return;
-    }
 
-    CollisionResult backBoardCollison0 =
-        checkRectangleSphereCollision(ball, backBorders.at(0));
-    if (backBoardCollison0.collision) {
-      ball.node.get_transform().SetTranslate(initalBallPosition);
-      std::cout << "Player 1 point!" << "\n";
-      pointStandings.player1Pts++;
+    case WAITING_TO_START:
+      if ((inputHandler.GetKeycodeState(GLFW_KEY_ENTER) & JUST_RELEASED)) {
+        currentGameState = STARTED;
+      }
+      break;
 
-      if (pointStandings.player1Pts == pointStandings.pointsToWin) {
-        std::cout << "Player 1 wins!" << "\n";
-        currentGameState = ENDED;
-      } else {
-        currentGameState = WAITING_TO_START;
-      }
-    }
-    CollisionResult backBoardCollison1 =
-        checkRectangleSphereCollision(ball, backBorders.at(1));
-    if (backBoardCollison1.collision) {
-      std::cout << "Player 2 point!" << "\n";
-      ball.node.get_transform().SetTranslate(initalBallPosition);
-      pointStandings.player2Pts++;
-      if (pointStandings.player2Pts == pointStandings.pointsToWin) {
-        std::cout << "Player 2 wins!" << "\n";
-        currentGameState = ENDED;
-      } else {
-        currentGameState = WAITING_TO_START;
-      }
-    }
+    case STARTED:
+      ball.node.get_transform().Translate(ballDirection * ballSpeed);
+      CollisionResult backBoardCollison0 =
+          checkRectangleSphereCollision(ball, backBorders.at(0));
+      if (backBoardCollison0.collision) {
+        ball.node.get_transform().SetTranslate(initalBallPosition);
+        pointStandings.player1Pts++;
 
-    for (auto paddle : paddles) {
-      CollisionResult collisionPaddle =
-          checkRectangleSphereCollision(ball, paddle);
-      if (collisionPaddle.collision) {
-        ballDirection = glm::normalize(
-            glm::reflect(ballDirection, collisionPaddle.collisionNormal));
+        if (pointStandings.player1Pts == pointStandings.pointsToWin) {
+          currentGameState = ENDED;
+        } else {
+          currentGameState = WAITING_TO_START;
+        }
       }
-    }
-    for (auto border : sideBorders) {
-      CollisionResult collisionSide =
-          checkRectangleSphereCollision(ball, border);
-      if (collisionSide.collision) {
-        ballDirection = glm::normalize(
-            glm::reflect(ballDirection, collisionSide.collisionNormal));
+      CollisionResult backBoardCollison1 =
+          checkRectangleSphereCollision(ball, backBorders.at(1));
+      if (backBoardCollison1.collision) {
+        ball.node.get_transform().SetTranslate(initalBallPosition);
+        pointStandings.player2Pts++;
+        if (pointStandings.player2Pts == pointStandings.pointsToWin) {
+          currentGameState = ENDED;
+        } else {
+          currentGameState = WAITING_TO_START;
+        }
       }
+
+      for (auto paddle : paddles) {
+        CollisionResult collisionPaddle =
+            checkRectangleSphereCollision(ball, paddle);
+        if (collisionPaddle.collision) {
+          ballDirection = glm::normalize(
+              glm::reflect(ballDirection, collisionPaddle.collisionNormal));
+        }
+      }
+      for (auto border : sideBorders) {
+        CollisionResult collisionSide =
+            checkRectangleSphereCollision(ball, border);
+        if (collisionSide.collision) {
+          ballDirection = glm::normalize(
+              glm::reflect(ballDirection, collisionSide.collisionNormal));
+        }
+      }
+
+      break;
     }
 
     for (auto node : nodes) {
@@ -350,8 +351,17 @@ void edaf80::Assignment5::run() {
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     // TODO: If you want a custom ImGUI window, you can set it up here
+    ImGui::Begin("Point standings");
+    ImGui::Begin("First to 3 wins!");
+    ImGui::Text(
+        ("Player 1:" + std::to_string(pointStandings.player1Pts)).c_str());
+    ImGui::Separator();
+    ImGui::Text(
+        ("Player 2:" + std::to_string(pointStandings.player2Pts)).c_str());
+    ImGui::Separator();
+    ImGui::End();
 
-    // mWindowManager.RenderImGuiFrame(show_gui);
+    mWindowManager.RenderImGuiFrame(true);
     glfwSwapBuffers(window);
   }
 }
