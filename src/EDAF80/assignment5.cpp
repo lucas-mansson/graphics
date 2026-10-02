@@ -43,9 +43,15 @@ struct CollisionResult {
 };
 
 enum GameState {
-  NOT_STARTED,
+  WAITING_TO_START,
   STARTED,
   ENDED,
+};
+
+struct PointStandings {
+  int player1Pts;
+  int player2Pts;
+  const int pointsToWin;
 };
 
 CollisionResult checkRectangleSphereCollision(Sphere sphere, Rectangle rec) {
@@ -235,7 +241,11 @@ void edaf80::Assignment5::run() {
   auto const initalBallDirection = glm::vec3(0, 0, 1);
   auto ballDirection = initalBallDirection;
 
-  GameState currentGameState = NOT_STARTED;
+  GameState currentGameState = WAITING_TO_START;
+  auto const pointsToWin = 3;
+  PointStandings pointStandings{
+      .player1Pts = 0, .player2Pts = 0, .pointsToWin = 3};
+
   while (!glfwWindowShouldClose(window)) {
 
     auto const nowTime = std::chrono::high_resolution_clock::now();
@@ -281,17 +291,41 @@ void edaf80::Assignment5::run() {
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
     // TODO: Render all your geometry here.
-    if (currentGameState != NOT_STARTED) {
+    if (currentGameState == STARTED) {
       ball.node.get_transform().Translate(ballDirection * ballSpeed);
     }
+    if (currentGameState == ENDED) {
+      return;
+    }
 
-    for (auto border : backBorders) {
-      CollisionResult collision = checkRectangleSphereCollision(ball, border);
-      if (collision.collision) {
-        ball.node.get_transform().SetTranslate(initalBallPosition);
-        currentGameState = NOT_STARTED;
+    CollisionResult backBoardCollison0 =
+        checkRectangleSphereCollision(ball, backBorders.at(0));
+    if (backBoardCollison0.collision) {
+      ball.node.get_transform().SetTranslate(initalBallPosition);
+      std::cout << "Player 1 point!" << "\n";
+      pointStandings.player1Pts++;
+
+      if (pointStandings.player1Pts == pointStandings.pointsToWin) {
+        std::cout << "Player 1 wins!" << "\n";
+        currentGameState = ENDED;
+      } else {
+        currentGameState = WAITING_TO_START;
       }
     }
+    CollisionResult backBoardCollison1 =
+        checkRectangleSphereCollision(ball, backBorders.at(1));
+    if (backBoardCollison1.collision) {
+      std::cout << "Player 2 point!" << "\n";
+      ball.node.get_transform().SetTranslate(initalBallPosition);
+      pointStandings.player2Pts++;
+      if (pointStandings.player2Pts == pointStandings.pointsToWin) {
+        std::cout << "Player 2 wins!" << "\n";
+        currentGameState = ENDED;
+      } else {
+        currentGameState = WAITING_TO_START;
+      }
+    }
+
     for (auto paddle : paddles) {
       CollisionResult collisionPaddle =
           checkRectangleSphereCollision(ball, paddle);
