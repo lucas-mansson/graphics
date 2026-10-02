@@ -13,9 +13,11 @@
 #include <array>
 #include <cstdlib>
 #include <glm/common.hpp>
+#include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/quaternion_geometric.hpp>
 #include <glm/ext/scalar_constants.hpp>
 #include <glm/ext/vector_float3.hpp>
+#include <glm/ext/vector_float4.hpp>
 #include <glm/geometric.hpp>
 #include <imgui.h>
 #include <tinyfiledialogs.h>
@@ -40,39 +42,33 @@ struct CollisionResult {
   glm::vec3 collisionNormal;
 };
 
-// TODO: Fix this with transformations instead of two separate functions
-CollisionResult checkXYRectangleSphereCollision(Sphere sphere, Rectangle rec) {
+enum GameState {
+  NOT_STARTED,
+  STARTED,
+  ENDED,
+};
+
+CollisionResult checkRectangleSphereCollision(Sphere sphere, Rectangle rec) {
+  // transform sphere into rectangles local space
+  glm::mat4 model = rec.node.get_transform().GetMatrix();
+  glm::mat4 inverseModel = glm::inverse(model);
+
   auto const sphereCenter = sphere.node.get_transform().GetTranslation();
+  auto const localSphereCenter =
+      glm::vec3(inverseModel * glm::vec4(sphereCenter, 1.0f));
+
   auto const recPt = rec.node.get_transform().GetTranslation();
 
-  glm::vec3 closestPoint;
-  closestPoint.x = glm::clamp(sphereCenter.x, recPt.x, recPt.x + rec.width);
-  closestPoint.y = glm::clamp(sphereCenter.y, recPt.y, recPt.y + rec.height);
-  closestPoint.z = recPt.z;
+  glm::vec3 localClosestPoint;
+  localClosestPoint.x = glm::clamp(localSphereCenter.x, 0.0f, rec.width);
+  localClosestPoint.y = glm::clamp(localSphereCenter.y, 0.0f, rec.height);
+  localClosestPoint.z = 0.0f;
+
+  glm::vec3 closestPoint =
+      glm::vec3(model * glm::vec4(localClosestPoint, 1.0f));
 
   auto const delta = sphereCenter - closestPoint;
-  float distSq =
-      glm::dot(sphereCenter - closestPoint, sphereCenter - closestPoint);
-
-  CollisionResult result;
-  result.collision = distSq <= sphere.radius * sphere.radius;
-  result.collisionNormal = glm::normalize(delta);
-
-  return result;
-}
-
-CollisionResult checkYZRectangleSphereCollision(Sphere sphere, Rectangle rec) {
-  auto const sphereCenter = sphere.node.get_transform().GetTranslation();
-  auto const recPt = rec.node.get_transform().GetTranslation();
-
-  glm::vec3 closestPoint;
-  closestPoint.x = recPt.x;
-  closestPoint.y = glm::clamp(sphereCenter.y, recPt.y, recPt.y + rec.height);
-  closestPoint.z = glm::clamp(sphereCenter.z, recPt.z - rec.width, recPt.z);
-
-  auto const delta = sphereCenter - closestPoint;
-  float distSq =
-      glm::dot(sphereCenter - closestPoint, sphereCenter - closestPoint);
+  float distSq = glm::dot(delta, delta);
 
   CollisionResult result;
   result.collision = distSq <= sphere.radius * sphere.radius;
@@ -107,35 +103,40 @@ edaf80::Assignment5::Assignment5(WindowManager &windowManager)
 
 edaf80::Assignment5::~Assignment5() { bonobo::deinit(); }
 
-void edaf80::Assignment5::run() {
-  // Set up the camera
+void setUpCamera(FPSCameraf &mCamera) {
   mCamera.mWorld.SetTranslate(glm::vec3(0.0f, 30.0f, 25.0f));
   mCamera.mWorld.LookAt(glm::vec3(0, 0, 0));
   mCamera.mMouseSensitivity = glm::vec2(0.003f);
-  mCamera.mMovementSpeed = glm::vec3(3.0f); // 3 m/s => 10.8 km/h
+  // mCamera.mMovementSpeed = glm::vec3(3.0f); // 3 m/s => 10.8 km/h
+}
 
-  // Create the shader programs
-  ShaderProgramManager program_manager;
-  GLuint fallback_shader = 0u;
+void load_shader(GLuint &shader, ShaderProgramManager &program_manager,
+                 std::string name, std::string shaderFileName) {
+
   program_manager.CreateAndRegisterProgram(
       "Fallback",
-      {{ShaderType::vertex, "common/fallback.vert"},
-       {ShaderType::fragment, "common/fallback.frag"}},
-      fallback_shader);
-  if (fallback_shader == 0u) {
+      {{ShaderType::vertex, shaderFileName + ".vert"},
+       {ShaderType::fragment, shaderFileName + ".frag"}},
+      shader);
+  if (shader == 0u) {
     LogError("Failed to load fallback shader");
-    return;
+    exit(1);
   }
+}
 
+void edaf80::Assignment5::run() {
+  // Set up the camera
+  setUpCamera(mCamera);
+
+  // Create the shader programs
   // TODO: Insert the creation of other shader programs.
+  ShaderProgramManager program_manager;
+  GLuint fallback_shader = 0u;
+  load_shader(fallback_shader, program_manager, "Fallback", "common/fallback");
+
   GLuint texcoord_shader = 0u;
-  program_manager.CreateAndRegisterProgram(
-      "Texture coords",
-      {{ShaderType::vertex, "EDAF80/texcoord.vert"},
-       {ShaderType::fragment, "EDAF80/texcoord.frag"}},
-      texcoord_shader);
-  if (texcoord_shader == 0u)
-    LogError("Failed to load texcoord shader");
+  load_shader(texcoord_shader, program_manager, "Texture coords",
+              "EDAF80/texcoord");
 
   // TODO: Load your geometry
   std::vector<Node *> nodes;
@@ -146,14 +147,15 @@ void edaf80::Assignment5::run() {
   const float paddleX = -paddleSideSize / 2.0f;
   const float paddleY = -paddleSideSize / 2.0f;
   const float paddleDistanceFromOrigo = 12.0f;
-
   std::array<glm::vec3, 2> paddlePositions = {
       glm::vec3(paddleX, paddleY, paddleDistanceFromOrigo),
       glm::vec3(paddleX, paddleY, -paddleDistanceFromOrigo),
   };
+
   std::array<Rectangle, 2> paddles;
   for (int i = 0; i < 2; i++) {
     Rectangle &paddle = paddles[i];
+
     paddle.node.set_geometry(paddleShape);
     paddle.node.set_program(&texcoord_shader);
     paddle.node.get_transform().SetTranslate(paddlePositions[i]);
@@ -172,11 +174,11 @@ void edaf80::Assignment5::run() {
   const float borderZ = borderWidth / 2.0f;
   bonobo::mesh_data borderShape =
       parametric_shapes::createQuadXY(borderWidth, borderHeight);
-
   std::array<glm::vec3, 2> sideBorderPositions = {
       glm::vec3(borderX, borderY, borderZ),
       glm::vec3(-borderX, borderY, borderZ),
   };
+
   std::array<Rectangle, 2> sideBorders;
   for (int i = 0; i < 2; i++) {
     Rectangle &border = sideBorders[i];
@@ -202,6 +204,7 @@ void edaf80::Assignment5::run() {
     border.node.set_geometry(borderShape);
     border.node.set_program(&texcoord_shader);
     border.node.get_transform().SetTranslate(backBorderPositions[i]);
+
     border.normal = glm::vec3(0, 0, 1);
     border.height = borderHeight;
     border.width = borderWidth;
@@ -219,34 +222,79 @@ void edaf80::Assignment5::run() {
   ball.radius = ballRadius;
   nodes.push_back(&ball.node);
 
-  auto ballDirection = glm::vec3(0, 0, -1);
-
   glClearDepthf(1.0f);
   glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
   glEnable(GL_DEPTH_TEST);
 
   auto lastTime = std::chrono::high_resolution_clock::now();
 
-  float const strafe_speed = 0.1f;
+  float const strafeSpeed = 0.1f;
+  float const ballSpeed = 0.1f;
 
+  auto const initalBallPosition = glm::vec3(0, 0, 0);
+  auto const initalBallDirection = glm::vec3(0, 0, 1);
+  auto ballDirection = initalBallDirection;
+
+  GameState currentGameState = NOT_STARTED;
   while (!glfwWindowShouldClose(window)) {
+
     auto const nowTime = std::chrono::high_resolution_clock::now();
     auto const deltaTimeUs =
         std::chrono::duration_cast<std::chrono::microseconds>(nowTime -
                                                               lastTime);
     lastTime = nowTime;
 
-    ball.node.get_transform().Translate(ballDirection / 10.0f);
+    auto &io = ImGui::GetIO();
+    inputHandler.SetUICapture(io.WantCaptureMouse, io.WantCaptureKeyboard);
+
+    glfwPollEvents();
+    inputHandler.Advance();
+    // mCamera.Update(deltaTimeUs, inputHandler);
+
+    int framebuffer_width, framebuffer_height;
+    glfwGetFramebufferSize(window, &framebuffer_width, &framebuffer_height);
+    glViewport(0, 0, framebuffer_width, framebuffer_height);
+
+    // TODO: If you need to handle inputs, you can do it here
+    if ((inputHandler.GetKeycodeState(GLFW_KEY_RIGHT) & PRESSED)) {
+      paddles.at(0).node.get_transform().Translate(
+          glm::vec3(strafeSpeed, 0, 0));
+    }
+    if ((inputHandler.GetKeycodeState(GLFW_KEY_LEFT) & PRESSED)) {
+      paddles.at(0).node.get_transform().Translate(
+          glm::vec3(-strafeSpeed, 0, 0));
+    }
+    if ((inputHandler.GetKeycodeState(GLFW_KEY_A) & PRESSED)) {
+      paddles.at(1).node.get_transform().Translate(
+          glm::vec3(-strafeSpeed, 0, 0));
+    }
+    if ((inputHandler.GetKeycodeState(GLFW_KEY_D) & PRESSED)) {
+      paddles.at(1).node.get_transform().Translate(
+          glm::vec3(strafeSpeed, 0, 0));
+    }
+
+    if ((inputHandler.GetKeycodeState(GLFW_KEY_ENTER) & JUST_RELEASED)) {
+      currentGameState = STARTED;
+    }
+
+    mWindowManager.NewImGuiFrame();
+    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+
+    // TODO: Render all your geometry here.
+    if (currentGameState != NOT_STARTED) {
+      ball.node.get_transform().Translate(ballDirection * ballSpeed);
+    }
 
     for (auto border : backBorders) {
-      CollisionResult collision = checkXYRectangleSphereCollision(ball, border);
+      CollisionResult collision = checkRectangleSphereCollision(ball, border);
       if (collision.collision) {
-        return;
+        ball.node.get_transform().SetTranslate(initalBallPosition);
+        currentGameState = NOT_STARTED;
       }
     }
     for (auto paddle : paddles) {
       CollisionResult collisionPaddle =
-          checkXYRectangleSphereCollision(ball, paddle);
+          checkRectangleSphereCollision(ball, paddle);
       if (collisionPaddle.collision) {
         ballDirection = glm::normalize(
             glm::reflect(ballDirection, collisionPaddle.collisionNormal));
@@ -254,48 +302,13 @@ void edaf80::Assignment5::run() {
     }
     for (auto border : sideBorders) {
       CollisionResult collisionSide =
-          checkYZRectangleSphereCollision(ball, border);
+          checkRectangleSphereCollision(ball, border);
       if (collisionSide.collision) {
         ballDirection = glm::normalize(
             glm::reflect(ballDirection, collisionSide.collisionNormal));
       }
     }
 
-    auto &io = ImGui::GetIO();
-    inputHandler.SetUICapture(io.WantCaptureMouse, io.WantCaptureKeyboard);
-
-    glfwPollEvents();
-    inputHandler.Advance();
-    mCamera.Update(deltaTimeUs, inputHandler);
-
-    int framebuffer_width, framebuffer_height;
-    glfwGetFramebufferSize(window, &framebuffer_width, &framebuffer_height);
-    glViewport(0, 0, framebuffer_width, framebuffer_height);
-
-    if ((inputHandler.GetKeycodeState(GLFW_KEY_RIGHT) & PRESSED)) {
-      paddles.at(0).node.get_transform().Translate(
-          glm::vec3(strafe_speed, 0, 0));
-    }
-    if ((inputHandler.GetKeycodeState(GLFW_KEY_LEFT) & PRESSED)) {
-      paddles.at(0).node.get_transform().Translate(
-          glm::vec3(-strafe_speed, 0, 0));
-    }
-    if ((inputHandler.GetKeycodeState(GLFW_KEY_J) & PRESSED)) {
-      paddles.at(1).node.get_transform().Translate(
-          glm::vec3(-strafe_speed, 0, 0));
-    }
-    if ((inputHandler.GetKeycodeState(GLFW_KEY_L) & PRESSED)) {
-      paddles.at(1).node.get_transform().Translate(
-          glm::vec3(strafe_speed, 0, 0));
-    }
-
-    // TODO: If you need to handle inputs, you can do it here
-
-    mWindowManager.NewImGuiFrame();
-
-    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-
-    // TODO: Render all your geometry here.
     for (auto node : nodes) {
       node->render(mCamera.GetWorldToClipMatrix());
     }
