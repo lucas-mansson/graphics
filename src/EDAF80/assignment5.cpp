@@ -11,7 +11,9 @@
 
 #include <GLFW/glfw3.h>
 #include <array>
+#include <chrono>
 #include <cstdlib>
+#include <functional>
 #include <glm/common.hpp>
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/quaternion_geometric.hpp>
@@ -19,6 +21,7 @@
 #include <glm/ext/vector_float3.hpp>
 #include <glm/ext/vector_float4.hpp>
 #include <glm/geometric.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
 #include <string>
 #include <tinyfiledialogs.h>
@@ -114,14 +117,13 @@ void setUpCamera(FPSCameraf &mCamera) {
   mCamera.mWorld.SetTranslate(glm::vec3(0.0f, 30.0f, 25.0f));
   mCamera.mWorld.LookAt(glm::vec3(0, 0, 0));
   mCamera.mMouseSensitivity = glm::vec2(0.003f);
-  // mCamera.mMovementSpeed = glm::vec3(3.0f); // 3 m/s => 10.8 km/h
 }
 
 void load_shader(GLuint &shader, ShaderProgramManager &program_manager,
                  std::string name, std::string shaderFileName) {
 
   program_manager.CreateAndRegisterProgram(
-      "Fallback",
+      name.c_str(),
       {{ShaderType::vertex, shaderFileName + ".vert"},
        {ShaderType::fragment, shaderFileName + ".frag"}},
       shader);
@@ -132,12 +134,10 @@ void load_shader(GLuint &shader, ShaderProgramManager &program_manager,
 }
 
 void edaf80::Assignment5::run() {
-  // Set up the camera
   setUpCamera(mCamera);
 
-  // Create the shader programs
-  // TODO: Insert the creation of other shader programs.
   ShaderProgramManager program_manager;
+
   GLuint fallback_shader = 0u;
   load_shader(fallback_shader, program_manager, "Fallback", "common/fallback");
 
@@ -145,8 +145,54 @@ void edaf80::Assignment5::run() {
   load_shader(texcoord_shader, program_manager, "Texture coords",
               "EDAF80/texcoord");
 
-  // TODO: Load your geometry
+  GLuint rect_shader = 0u;
+  load_shader(rect_shader, program_manager, "Rect", "EDAF80/pong_rect");
+
+  GLuint ball_shader = 0u;
+  load_shader(ball_shader, program_manager, "Ball", "EDAF80/pong_ball");
+
+  GLuint skybox_shader = 0u;
+  load_shader(skybox_shader, program_manager, "Skybox", "EDAF80/skybox");
+
+  glm::vec3 light_position = glm::vec3(0.0f, 20.0f, 0.0f);
+  glm::vec3 camera_position = glm::vec3(0.0f);
+
+  auto rectUniforms = [&](glm::vec3 color, float opacity = 1.0f) {
+      return [&light_position, &camera_position, color, opacity](GLuint program) {
+          glUniform3fv(glGetUniformLocation(program, "base_color"), 1,
+              glm::value_ptr(color));
+          glUniform3fv(glGetUniformLocation(program, "light_position"), 1,
+              glm::value_ptr(light_position));
+          glUniform3fv(glGetUniformLocation(program, "camera_position"), 1,
+              glm::value_ptr(camera_position));
+          glUniform1f(glGetUniformLocation(program, "opacity"), opacity);
+      };
+  };
+
+  auto ballUniforms = [&](GLuint program) {
+      glUniform3fv(glGetUniformLocation(program, "light_position"), 1,
+          glm::value_ptr(light_position));
+      glUniform3fv(glGetUniformLocation(program, "camera_position"), 1,
+          glm::value_ptr(camera_position));
+      glUniform1f(glGetUniformLocation(program, "shininess"), 64.0f);
+      };
+
+
+  GLuint skybox_texture = bonobo::loadTextureCubeMap(
+      config::resources_path("cubemaps/NissiBeach2/posx.jpg"),
+      config::resources_path("cubemaps/NissiBeach2/negx.jpg"),
+      config::resources_path("cubemaps/NissiBeach2/posy.jpg"),
+      config::resources_path("cubemaps/NissiBeach2/negy.jpg"),
+      config::resources_path("cubemaps/NissiBeach2/posz.jpg"),
+      config::resources_path("cubemaps/NissiBeach2/negz.jpg"));
+
+  Node skybox;
+  skybox.set_geometry(parametric_shapes::createSphere(100.0f, 50u, 50u));
+  skybox.set_program(&skybox_shader);
+  skybox.add_texture("cubemap", skybox_texture, GL_TEXTURE_CUBE_MAP);
+
   std::vector<Node *> nodes;
+  std::vector<Node *> glassNodes;
 
   const float paddleSideSize = 5.0f;
   bonobo::mesh_data paddleShape =
@@ -164,7 +210,7 @@ void edaf80::Assignment5::run() {
     Rectangle &paddle = paddles[i];
 
     paddle.node.set_geometry(paddleShape);
-    paddle.node.set_program(&texcoord_shader);
+    paddle.node.set_program(&rect_shader, rectUniforms(i == 0 ? glm::vec3(0.2f, 0.6f, 1.0f) : glm::vec3(1.0f, 0.4f, 0.2f)));
     paddle.node.get_transform().SetTranslate(paddlePositions[i]);
 
     paddle.normal = glm::vec3(0.0f, 0.0f, 1.0f);
@@ -186,11 +232,14 @@ void edaf80::Assignment5::run() {
       glm::vec3(-borderX, borderY, borderZ),
   };
 
+  const glm::vec3 borderColor(0.7f, 0.85f, 1.0f);
+  const float glassOpacity = 0.2f;
+
   std::array<Rectangle, 2> sideBorders;
   for (int i = 0; i < 2; i++) {
     Rectangle &border = sideBorders[i];
     border.node.set_geometry(borderShape);
-    border.node.set_program(&texcoord_shader);
+    border.node.set_program(&rect_shader, rectUniforms(borderColor, glassOpacity));
     border.node.get_transform().SetTranslate(sideBorderPositions[i]);
     border.node.get_transform().RotateY(glm::half_pi<float>());
 
@@ -198,7 +247,7 @@ void edaf80::Assignment5::run() {
     border.height = borderHeight;
     border.width = borderWidth;
 
-    nodes.push_back(&sideBorders[i].node);
+    glassNodes.push_back(&sideBorders[i].node);
   }
 
   std::array<glm::vec3, 2> backBorderPositions = {
@@ -206,25 +255,26 @@ void edaf80::Assignment5::run() {
       glm::vec3(-borderWidth / 2.0f, borderY, -borderWidth / 2.0f),
   };
   std::array<Rectangle, 2> backBorders;
-  for (int i = 0; i < backBorders.size(); i++) {
+  for (size_t i = 0; i < backBorders.size(); i++) {
     Rectangle &border = backBorders[i];
     border.node.set_geometry(borderShape);
-    border.node.set_program(&texcoord_shader);
+    border.node.set_program(&rect_shader, rectUniforms(borderColor, glassOpacity));
     border.node.get_transform().SetTranslate(backBorderPositions[i]);
 
     border.normal = glm::vec3(0, 0, 1);
     border.height = borderHeight;
     border.width = borderWidth;
-    nodes.push_back(&border.node);
+    glassNodes.push_back(&border.node); 
   }
 
   Sphere ball;
   const float ballRadius = 1.0f;
   bonobo::mesh_data ballShape =
-      parametric_shapes::createSphere(ballRadius, 1000u, 1000u);
+      parametric_shapes::createSphere(ballRadius, 100u, 100u);
   Node ballNode;
   ballNode.set_geometry(ballShape);
-  ballNode.set_program(&texcoord_shader);
+  ballNode.set_program(&ball_shader, ballUniforms);
+
   ball.node = ballNode;
   ball.radius = ballRadius;
   nodes.push_back(&ball.node);
@@ -232,23 +282,22 @@ void edaf80::Assignment5::run() {
   glClearDepthf(1.0f);
   glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
   glEnable(GL_DEPTH_TEST);
-
+  glDisable(GL_CULL_FACE);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   auto lastTime = std::chrono::high_resolution_clock::now();
 
   float const strafeSpeed = 0.1f;
   float const ballSpeed = 0.1f;
 
   auto const initalBallPosition = glm::vec3(0, 0, 0);
-  auto const initalBallDirection = glm::vec3(0, 0, 1);
+  auto const initalBallDirection = glm::vec3(0, 0, 1);  
   auto ballDirection = initalBallDirection;
 
   GameState currentGameState = WAITING_TO_START;
-  auto const pointsToWin = 3;
-  PointStandings pointStandings{
-      .player1Pts = 0, .player2Pts = 0, .pointsToWin = 3};
+  PointStandings pointStandings{0, 0, 3};
 
   while (!glfwWindowShouldClose(window)) {
-
     auto const nowTime = std::chrono::high_resolution_clock::now();
     auto const deltaTimeUs =
         std::chrono::duration_cast<std::chrono::microseconds>(nowTime -
@@ -260,13 +309,13 @@ void edaf80::Assignment5::run() {
 
     glfwPollEvents();
     inputHandler.Advance();
-    // mCamera.Update(deltaTimeUs, inputHandler);
 
     int framebuffer_width, framebuffer_height;
     glfwGetFramebufferSize(window, &framebuffer_width, &framebuffer_height);
     glViewport(0, 0, framebuffer_width, framebuffer_height);
 
-    // TODO: If you need to handle inputs, you can do it here
+    camera_position = mCamera.mWorld.GetTranslation();
+
     if ((inputHandler.GetKeycodeState(GLFW_KEY_RIGHT) & PRESSED)) {
       paddles.at(0).node.get_transform().Translate(
           glm::vec3(strafeSpeed, 0, 0));
@@ -287,7 +336,10 @@ void edaf80::Assignment5::run() {
     mWindowManager.NewImGuiFrame();
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
-    // TODO: Render all your geometry here.
+    skybox.get_transform().SetTranslate(camera_position);
+    skybox.render(mCamera.GetWorldToClipMatrix());
+    glClear(GL_DEPTH_BUFFER_BIT);
+
     switch (currentGameState) {
     case ENDED:
       return;
@@ -300,24 +352,31 @@ void edaf80::Assignment5::run() {
 
     case STARTED:
       ball.node.get_transform().Translate(ballDirection * ballSpeed);
+
+      // Bakvägg 0 (bakom Spelare 1, Blå) -> Poäng till Spelare 2 (Röd)
       CollisionResult backBoardCollison0 =
           checkRectangleSphereCollision(ball, backBorders.at(0));
       if (backBoardCollison0.collision) {
         ball.node.get_transform().SetTranslate(initalBallPosition);
-        pointStandings.player1Pts++;
+        ballDirection = -initalBallDirection;
+        pointStandings.player2Pts++;
 
-        if (pointStandings.player1Pts == pointStandings.pointsToWin) {
+        if (pointStandings.player2Pts >= pointStandings.pointsToWin) {
           currentGameState = ENDED;
         } else {
           currentGameState = WAITING_TO_START;
         }
       }
+
+      // Bakvägg 1 (bakom Spelare 2, Röd) -> Poäng till Spelare 1 (Blå)
       CollisionResult backBoardCollison1 =
           checkRectangleSphereCollision(ball, backBorders.at(1));
       if (backBoardCollison1.collision) {
         ball.node.get_transform().SetTranslate(initalBallPosition);
-        pointStandings.player2Pts++;
-        if (pointStandings.player2Pts == pointStandings.pointsToWin) {
+        ballDirection = initalBallDirection;
+        pointStandings.player1Pts++;
+
+        if (pointStandings.player1Pts >= pointStandings.pointsToWin) {
           currentGameState = ENDED;
         } else {
           currentGameState = WAITING_TO_START;
@@ -345,20 +404,22 @@ void edaf80::Assignment5::run() {
     }
 
     for (auto node : nodes) {
-      node->render(mCamera.GetWorldToClipMatrix());
+        node->render(mCamera.GetWorldToClipMatrix());
     }
+
+    glDepthMask(GL_FALSE);
+    for (auto node : glassNodes) {
+        node->render(mCamera.GetWorldToClipMatrix());
+    }
+    glDepthMask(GL_TRUE);
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-    // TODO: If you want a custom ImGUI window, you can set it up here
     ImGui::Begin("Point standings");
-    ImGui::Begin("First to 3 wins!");
-    ImGui::Text(
-        ("Player 1:" + std::to_string(pointStandings.player1Pts)).c_str());
+    ImGui::Text("First to 3 wins!");
     ImGui::Separator();
-    ImGui::Text(
-        ("Player 2:" + std::to_string(pointStandings.player2Pts)).c_str());
-    ImGui::Separator();
+    ImGui::TextColored(ImVec4(0.2f, 0.6f, 1.0f, 1.0f), "Player 1 (Bla): %d", pointStandings.player1Pts);
+    ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.2f, 1.0f), "Player 2 (Rod): %d", pointStandings.player2Pts);
     ImGui::End();
 
     mWindowManager.RenderImGuiFrame(true);

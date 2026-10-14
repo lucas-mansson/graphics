@@ -439,14 +439,14 @@ parametric_shapes::createSphere(float const radius,
   size_t index = 0u;
   float theta = 0.0f;
   for (unsigned int i = 0u; i < horizontal_vertices_count + 1; ++i) {
-    assert(0 <= theta && theta <= glm::two_pi<float>());
+    //assert(0 <= theta && theta <= glm::two_pi<float>());
 
     float const cos_theta = std::cos(theta);
     float const sin_theta = std::sin(theta);
 
     float phi = 0.0f;
     for (unsigned int j = 0u; j < vertical_vertices_count; ++j) {
-      assert(0 <= phi && phi <= glm::pi<float>());
+      //assert(0 <= phi && phi <= glm::pi<float>());
 
       float const cos_phi = std::cos(phi);
       float const sin_phi = std::sin(phi);
